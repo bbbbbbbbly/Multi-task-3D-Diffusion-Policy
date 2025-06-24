@@ -45,6 +45,8 @@ easytrain.sh
 nohup.out
 output/
 
+
+# 6.24 Update
 openpoints/
 Robotwin/
 src/

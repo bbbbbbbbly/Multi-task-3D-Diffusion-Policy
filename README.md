@@ -1,6 +1,17 @@
-
-
 # <a href="https://3d-diffusion-policy.github.io">3D Diffusion Policy</a>
+
+## 6.24 Update
+* 跑通原版DP3后新增的环境问题
+  * 需要git clone openpoints
+    * 在openpoints/cpp/chamfer_dist 和 /cpp/pointnet2_batch 下 pip install
+  * 和FP3中一样，把model.pt下载到3D-Diffusion-Policy/Uni3D_large下
+  * 其它的根据报错应该就能解决
+* 执行训练命令
+```
+bash scripts/train_policy.sh dp3_uni3d_pretrained adroit_hammer 0000 0 0
+```
+
+---
 
 <a href="https://3d-diffusion-policy.github.io"><strong>Project Page</strong></a>
   |
