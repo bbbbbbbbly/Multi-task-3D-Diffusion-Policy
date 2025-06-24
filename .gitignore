@@ -44,3 +44,10 @@ personal_TASK.md
 easytrain.sh
 nohup.out
 output/
+
+openpoints/
+Robotwin/
+src/
+3D-Diffusion-Policy/Uni3D_large/model.pt
+third_party/VRL3/vrl3_ckpts.zip
+third_party/dexart-release/dexart_assets.zip

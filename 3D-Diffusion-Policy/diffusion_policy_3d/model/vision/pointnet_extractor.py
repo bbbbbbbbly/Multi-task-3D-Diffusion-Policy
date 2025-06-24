@@ -3,6 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torchvision
 import copy
+import timm
+import os
 
 from typing import Optional, Dict, Tuple, Union, List, Type
 from termcolor import cprint
@@ -235,6 +237,8 @@ class DP3Encoder(nn.Module):
 
         self.use_pc_color = use_pc_color
         self.pointnet_type = pointnet_type
+        
+        # 支持Uni3D编码器
         if pointnet_type == "pointnet":
             if use_pc_color:
                 pointcloud_encoder_cfg.in_channels = 6
@@ -242,6 +246,58 @@ class DP3Encoder(nn.Module):
             else:
                 pointcloud_encoder_cfg.in_channels = 3
                 self.extractor = PointNetEncoderXYZ(**pointcloud_encoder_cfg)
+        elif pointnet_type == "uni3d":
+            cprint(f"[DP3Encoder] 使用Uni3D编码器", "green")
+            # 为Uni3D编码器设置默认配置
+            uni3d_config = {
+                'pc_model': 'eva02_large_patch14_448',
+                'pc_feat_dim': 1024,
+                'embed_dim': out_channel,  # 匹配输出维度
+                'group_size': 32,
+                'num_group': 512,
+                'patch_dropout': 0.5,
+                'drop_path_rate': 0.2,
+                'pretrained_pc': None,
+                'pc_encoder_dim': 512,
+                'use_pretrained_weights': False,
+                'pretrained_weights_path': None,
+            }
+            
+            # 使用用户提供的配置覆盖默认值
+            if pointcloud_encoder_cfg:
+                uni3d_config.update(pointcloud_encoder_cfg)
+            
+            self.extractor = Uni3DPointcloudEncoder(**uni3d_config)
+            
+            # 调整输出通道数以匹配Uni3D输出
+            self.n_output_channels = uni3d_config['embed_dim']
+            
+        elif pointnet_type == "uni3d_pretrained":
+            cprint(f"[DP3Encoder] 使用预训练Uni3D编码器", "green")
+            # 为预训练Uni3D编码器设置配置
+            uni3d_config = {
+                'pc_model': 'eva02_large_patch14_448',
+                'pc_feat_dim': 1024,
+                'embed_dim': out_channel,  # 匹配输出维度
+                'group_size': 32,
+                'num_group': 512,
+                'patch_dropout': 0.5,
+                'drop_path_rate': 0.2,
+                'pretrained_pc': None,
+                'pc_encoder_dim': 512,
+                'use_pretrained_weights': True,
+                'pretrained_weights_path': './droid_policy_learning/Uni3D_large/model.pt',  # 默认路径
+            }
+            
+            # 使用用户提供的配置覆盖默认值
+            if pointcloud_encoder_cfg:
+                uni3d_config.update(pointcloud_encoder_cfg)
+            
+            self.extractor = Uni3DPointcloudEncoder(**uni3d_config)
+            
+            # 调整输出通道数以匹配Uni3D输出
+            self.n_output_channels = uni3d_config['embed_dim']
+            
         else:
             raise NotImplementedError(f"pointnet_type: {pointnet_type}")
 
@@ -267,8 +323,18 @@ class DP3Encoder(nn.Module):
             img_points = observations[self.imagination_key][..., :points.shape[-1]] # align the last dim
             points = torch.concat([points, img_points], dim=1)
         
-        # points = torch.transpose(points, 1, 2)   # B * 3 * N
-        # points: B * 3 * (N + sum(Ni))
+        # 处理不同类型的编码器
+        if self.pointnet_type in ["uni3d", "uni3d_pretrained"]:
+            # Uni3D编码器需要6通道输入 (xyz + rgb)
+            if points.shape[-1] == 3:
+                # 如果只有xyz，添加零颜色
+                colors = torch.zeros_like(points)
+                points = torch.cat([points, colors], dim=-1)
+            elif points.shape[-1] > 6:
+                # 如果有超过6个通道，只取前6个
+                points = points[..., :6]
+            
+        # points: B * N * (3 or 6)
         pn_feat = self.extractor(points)    # B * out_channel
             
         state = observations[self.state_key]
@@ -279,3 +345,340 @@ class DP3Encoder(nn.Module):
 
     def output_shape(self):
         return self.n_output_channels
+
+
+# =============================================================================
+# Uni3D 编码器相关组件 - 从FP3项目迁移
+# =============================================================================
+
+# 需要的辅助函数和依赖项
+
+# except ImportError:
+#     # 如果openpoints不可用，提供一个简单的替代实现
+#     def furthest_point_sample(xyz, npoint):
+#         """
+#         简化的FPS实现 - 如果openpoints不可用则使用随机采样
+#         """
+#         print("Warning: openpoints not available, using random sampling instead of FPS")
+#         B, N, _ = xyz.shape
+#         idx = torch.randperm(N)[:npoint].unsqueeze(0).expand(B, -1)
+#         return idx
+
+from openpoints.models.layers import furthest_point_sample
+def fps(data, number):
+    '''
+        data B N 3
+        number int
+    '''
+    fps_idx = furthest_point_sample(data[:, :, :3].contiguous(), number)
+    fps_data = torch.gather(
+        data, 1, fps_idx.unsqueeze(-1).long().expand(-1, -1, data.shape[-1]))
+    return fps_data
+# from pointnet2_ops import pointnet2_utils
+# def fps(data, number):
+#     '''
+#         data B N 3
+#         number int
+#     '''
+#     fps_idx = pointnet2_utils.furthest_point_sample(data, number) 
+#     fps_data = pointnet2_utils.gather_operation(data.transpose(1, 2).contiguous(), fps_idx).transpose(1,2).contiguous()
+#     return fps_data
+
+def knn_point(nsample, xyz, new_xyz):
+    """
+    Input:
+        nsample: max sample number in local region
+        xyz: all points, [B, N, C]
+        new_xyz: query points, [B, S, C]
+    Return:
+        group_idx: grouped points index, [B, S, nsample]
+    """
+    sqrdists = square_distance(new_xyz, xyz)
+    _, group_idx = torch.topk(sqrdists, nsample, dim=-1, largest=False, sorted=False)
+    return group_idx
+
+def square_distance(src, dst):
+    """
+    Calculate Euclid distance between each two points.
+    """
+    B, N, _ = src.shape
+    _, M, _ = dst.shape
+    dist = -2 * torch.matmul(src, dst.permute(0, 2, 1))
+    dist += torch.sum(src ** 2, -1).view(B, N, 1)
+    dist += torch.sum(dst ** 2, -1).view(B, 1, M)
+    return dist
+
+def random_point_dropout(batch_pc, max_dropout_ratio=0.875):
+    ''' batch_pc: BxNx3 '''
+    B, N, _ = batch_pc.shape
+    result = torch.clone(batch_pc)
+    for b in range(B):
+        dropout_ratio = torch.rand(1).item() * max_dropout_ratio  # 0 ~ 0.875
+        drop_idx = torch.where(torch.rand(N) <= dropout_ratio)[0]
+        if len(drop_idx) > 0:
+            result[b, drop_idx, :] = batch_pc[b, 0, :].unsqueeze(0)  # set to the first point
+    return result
+
+class PatchDropout(nn.Module):
+    """
+    Patch dropout for Uni3D
+    https://arxiv.org/abs/2212.00794
+    """
+    def __init__(self, prob, exclude_first_token=True):
+        super().__init__()
+        assert 0 <= prob < 1.
+        self.prob = prob
+        self.exclude_first_token = exclude_first_token  # exclude CLS token
+
+    def forward(self, x):
+        # if not self.training or self.prob == 0.:
+        #     return x
+
+        if self.exclude_first_token:
+            cls_tokens, x = x[:, :1], x[:, 1:]
+        else:
+            cls_tokens = torch.jit.annotate(torch.Tensor, x[:, :1])
+
+        batch = x.size()[0]
+        num_tokens = x.size()[1]
+
+        batch_indices = torch.arange(batch)
+        batch_indices = batch_indices[..., None]
+
+        keep_prob = 1 - self.prob
+        num_patches_keep = max(1, int(num_tokens * keep_prob))
+
+        rand = torch.randn(batch, num_tokens)
+        patch_indices_keep = rand.topk(num_patches_keep, dim=-1).indices
+
+        x = x[batch_indices, patch_indices_keep]
+
+        if self.exclude_first_token:
+            x = torch.cat((cls_tokens, x), dim=1)
+
+        return x
+
+class Group(nn.Module):
+    """点云分组模块"""
+    def __init__(self, num_group, group_size):
+        super().__init__()
+        self.num_group = num_group
+        self.group_size = group_size
+
+    def forward(self, xyz, color):
+        '''
+            input: B N 3
+            ---------------------------
+            output: B G M 3
+            center : B G 3
+        '''
+        batch_size, num_points, _ = xyz.shape
+        # fps the centers out
+        center = fps(xyz, self.num_group) # B G 3
+        # knn to get the neighborhood
+        idx = knn_point(self.group_size, xyz, center) # B G M
+        assert idx.size(1) == self.num_group
+        assert idx.size(2) == self.group_size
+        idx_base = torch.arange(0, batch_size, device=xyz.device).view(-1, 1, 1) * num_points
+        idx = idx + idx_base
+        idx = idx.view(-1)
+        neighborhood = xyz.view(batch_size * num_points, -1)[idx, :]
+        neighborhood = neighborhood.view(batch_size, self.num_group, self.group_size, 3).contiguous()
+
+        neighborhood_color = color.view(batch_size * num_points, -1)[idx, :]
+        neighborhood_color = neighborhood_color.view(batch_size, self.num_group, self.group_size, 3).contiguous()
+
+        # normalize
+        neighborhood = neighborhood - center.unsqueeze(2)
+
+        features = torch.cat((neighborhood, neighborhood_color), dim=-1)
+        return neighborhood, center, features
+
+class Encoder(nn.Module):
+    """Uni3D点云编码器"""
+    def __init__(self, encoder_channel):
+        super().__init__()
+        self.encoder_channel = encoder_channel
+        self.first_conv = nn.Sequential(
+            nn.Conv1d(6, 128, 1),
+            nn.BatchNorm1d(128),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(128, 256, 1)
+        )
+        self.second_conv = nn.Sequential(
+            nn.Conv1d(512, 512, 1),
+            nn.BatchNorm1d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv1d(512, self.encoder_channel, 1)
+        )
+    
+    def forward(self, point_groups):
+        '''
+            point_groups : B G N 6
+            -----------------
+            feature_global : B G C
+        '''
+        bs, g, n, _ = point_groups.shape
+        point_groups = point_groups.reshape(bs * g, n, 6)
+        # encoder
+        feature = self.first_conv(point_groups.transpose(2,1))  # BG 256 n
+        feature_global = torch.max(feature, dim=2, keepdim=True)[0]  # BG 256 1
+        feature = torch.cat([feature_global.expand(-1,-1,n), feature], dim=1)# BG 512 n
+        feature = self.second_conv(feature) # BG encoder_channel n
+        feature_global = torch.max(feature, dim=2, keepdim=False)[0] # BG encoder_channel
+        return feature_global.reshape(bs, g, self.encoder_channel)
+
+class Uni3DPointcloudEncoder(nn.Module):
+    """
+    Uni3D点云编码器 - 从FP3项目迁移到DP3
+    支持预训练权重加载和从头训练两种模式
+    """
+    def __init__(self, 
+                 pc_model='eva02_large_patch14_448',
+                 pc_feat_dim=1024,
+                 embed_dim=1024,
+                 group_size=32,
+                 num_group=512,
+                 patch_dropout=0.5,
+                 drop_path_rate=0.2,
+                 pretrained_pc=None,
+                 pc_encoder_dim=512,
+                 use_pretrained_weights=False,
+                 pretrained_weights_path=None,
+                 **kwargs):
+        super().__init__()
+        
+        # 创建point transformer backbone
+        point_transformer = timm.create_model(pc_model, checkpoint_path=pretrained_pc, drop_path_rate=drop_path_rate)
+        
+        self.trans_dim = pc_feat_dim
+        self.embed_dim = embed_dim
+        self.group_size = group_size
+        self.num_group = num_group
+        self.use_pretrained_weights = use_pretrained_weights
+        
+        # 点云分组器
+        self.group_divider = Group(num_group=self.num_group, group_size=self.group_size)
+        
+        # 定义编码器
+        self.encoder_dim = pc_encoder_dim
+        self.encoder = Encoder(encoder_channel=self.encoder_dim)
+    
+        # 桥接层
+        self.encoder2trans = nn.Linear(self.encoder_dim, self.trans_dim)
+        self.trans2embed = nn.Linear(self.trans_dim, self.embed_dim)
+        
+        # Transformer相关参数
+        self.cls_token = nn.Parameter(torch.zeros(1, 1, self.trans_dim))
+        self.cls_pos = nn.Parameter(torch.randn(1, 1, self.trans_dim))
+
+        self.pos_embed = nn.Sequential(
+            nn.Linear(3, 128),
+            nn.GELU(),
+            nn.Linear(128, self.trans_dim)
+        )
+        
+        # Patch dropout
+        self.patch_dropout = PatchDropout(patch_dropout) if patch_dropout > 0. else nn.Identity()
+        
+        # Vision transformer组件
+        self.visual_pos_drop = point_transformer.pos_drop
+        self.visual_blocks = point_transformer.blocks
+        self.visual_norm = point_transformer.norm
+        self.visual_fc_norm = point_transformer.fc_norm
+        
+        # 加载预训练权重（如果指定）
+        if use_pretrained_weights: # and pretrained_weights_path is not None:
+            cur_dir =os.getcwd()
+            state_dict = torch.load(os.path.join(cur_dir, 'Uni3D_large/model.pt'))['module']
+            
+            for key in list(state_dict.keys()):
+                state_dict[key.replace('point_encoder.', '').replace('visual.', 'visual_')] = state_dict[key]
+            for key in list(state_dict.keys()):
+                if key not in self.state_dict():
+                    del state_dict[key]
+            self.load_state_dict(state_dict)
+            # self._load_pretrained_weights(pretrained_weights_path)
+            cprint(f"[Uni3DPointcloudEncoder] 已加载预训练权重从: {pretrained_weights_path}", "green")
+        else:
+            cprint(f"[Uni3DPointcloudEncoder] 使用随机初始化权重（从头训练模式）", "yellow")
+
+    # def _load_pretrained_weights(self, weights_path):
+    #     """加载Uni3D预训练权重"""
+    #     try:
+    #         if os.path.exists(weights_path):
+    #             state_dict = torch.load(weights_path, map_location='cpu')
+                
+    #             # 处理可能的module前缀
+    #             if 'module' in state_dict:
+    #                 state_dict = state_dict['module']
+                
+    #             # 处理键名映射
+    #             new_state_dict = {}
+    #             for key, value in state_dict.items():
+    #                 new_key = key.replace('point_encoder.', '').replace('visual.', 'visual_')
+    #                 new_state_dict[new_key] = value
+                
+    #             # 过滤不匹配的键
+    #             filtered_state_dict = {}
+    #             for key, value in new_state_dict.items():
+    #                 if key in self.state_dict():
+    #                     filtered_state_dict[key] = value
+    #                 else:
+    #                     cprint(f"跳过不匹配的键: {key}", "red")
+                
+    #             # 加载权重
+    #             missing_keys, unexpected_keys = self.load_state_dict(filtered_state_dict, strict=False)
+    #             if missing_keys:
+    #                 cprint(f"缺失的键: {missing_keys}", "yellow")
+    #             if unexpected_keys:
+    #                 cprint(f"意外的键: {unexpected_keys}", "yellow")
+                    
+    #         else:
+    #             cprint(f"预训练权重文件不存在: {weights_path}", "red")
+                
+    #     except Exception as e:
+    #         cprint(f"加载预训练权重时出错: {e}", "red")
+
+    def forward(self, pcd):
+        # 应用点云dropout（数据增强）
+        # if self.training:
+        pcd = random_point_dropout(pcd, max_dropout_ratio=0.8)
+        
+        pts = pcd[..., :3].contiguous()
+        colors = pcd[..., 3:].contiguous()
+        
+        # 点云分组
+        _, center, features = self.group_divider(pts, colors)
+
+        # 编码输入点云patches
+        group_input_tokens = self.encoder(features)  # B G N
+        group_input_tokens = self.encoder2trans(group_input_tokens)
+        
+        # 准备cls token
+        cls_tokens = self.cls_token.expand(group_input_tokens.size(0), -1, -1)  
+        cls_pos = self.cls_pos.expand(group_input_tokens.size(0), -1, -1)  
+        
+        # 添加位置嵌入
+        pos = self.pos_embed(center)
+        
+        # 最终输入
+        x = torch.cat((cls_tokens, group_input_tokens), dim=1)
+        pos = torch.cat((cls_pos, pos), dim=1)
+        
+        # transformer
+        x = x + pos
+        
+        # patch dropout
+        x = self.patch_dropout(x)
+        x = self.visual_pos_drop(x)
+
+        # 通过visual transformer blocks
+        for i, blk in enumerate(self.visual_blocks):
+            x = blk(x)
+        
+        x = self.visual_norm(x[:, 0, :])
+        x = self.visual_fc_norm(x)
+        x = self.trans2embed(x)
+        
+        return x

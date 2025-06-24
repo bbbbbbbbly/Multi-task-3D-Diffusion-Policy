@@ -30,14 +30,19 @@ if [ $DEBUG = True ]; then
     echo -e "\033[33mDebug mode!\033[0m"
     echo -e "\033[33mDebug mode!\033[0m"
 else
-    wandb_mode=online
+    wandb_mode=offline
     echo -e "\033[33mTrain mode\033[0m"
 fi
 
 cd 3D-Diffusion-Policy
 
+export PYTHONPATH=..${PYTHONPATH:+:$PYTHONPATH} # Add project root to PYTHONPATH to find openpoints
+export HYDRA_FULL_ERROR=1
 
-export HYDRA_FULL_ERROR=1 
+# export MUJOCO_GL=osmesa
+
+# unset LD_PRELOAD
+
 export CUDA_VISIBLE_DEVICES=${gpu_id}
 python train.py --config-name=${config_name}.yaml \
                             task=${task_name} \
@@ -51,4 +56,3 @@ python train.py --config-name=${config_name}.yaml \
 
 
 
-                                

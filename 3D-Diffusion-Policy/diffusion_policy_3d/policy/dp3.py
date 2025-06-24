@@ -85,7 +85,9 @@ class DP3(BasePolicy):
         cprint(f"[DiffusionUnetHybridPointcloudPolicy] use_pc_color: {self.use_pc_color}", "yellow")
         cprint(f"[DiffusionUnetHybridPointcloudPolicy] pointnet_type: {self.pointnet_type}", "yellow")
 
-
+        # 支持Uni3D编码器的输出维度提示
+        if pointnet_type in ["uni3d", "uni3d_pretrained"]:
+            cprint(f"[DP3] 检测到Uni3D编码器，确保encoder_output_dim与Uni3D输出维度匹配", "cyan")
 
         model = ConditionalUnet1D(
             input_dim=input_dim,
@@ -275,7 +277,6 @@ class DP3(BasePolicy):
         cond_data = trajectory
         
        
-        
         if self.obs_as_global_cond:
             # reshape B, T, ... to B*T
             this_nobs = dict_apply(nobs, 
