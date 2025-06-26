@@ -87,6 +87,7 @@ class TrainDP3Workspace:
             RUN_CKPT = True
             verbose = False
         
+        RUN_ROLLOUT = False
         RUN_VALIDATION = False # reduce time cost
         
         # resume training
@@ -131,17 +132,19 @@ class TrainDP3Workspace:
             ema = hydra.utils.instantiate(
                 cfg.ema,
                 model=self.ema_model)
+            
+        env_runner = None
+        # 暂时不需要初始化环境，先注释掉
+        # # configure env
+        # env_runner: BaseRunner
+        # env_runner = hydra.utils.instantiate(
+        #     cfg.task.env_runner,
+        #     output_dir=self.output_dir)
 
-        # configure env
-        env_runner: BaseRunner
-        env_runner = hydra.utils.instantiate(
-            cfg.task.env_runner,
-            output_dir=self.output_dir)
-
-        if env_runner is not None:
-            assert isinstance(env_runner, BaseRunner)
+        # if env_runner is not None:
+        #     assert isinstance(env_runner, BaseRunner)
         
-        cfg.logging.name = str(cfg.logging.name)
+        cfg.logging.name = str(cfg.task.name)
         cprint("-----------------------------", "yellow")
         cprint(f"[WandB] group: {cfg.logging.group}", "yellow")
         cprint(f"[WandB] name: {cfg.logging.name}", "yellow")
@@ -272,6 +275,7 @@ class TrainDP3Workspace:
                             batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
                             loss, loss_dict = self.model.compute_loss(batch)
                             val_losses.append(loss)
+                            print(f'epoch {self.epoch}, eval loss: ', float(loss.cpu()))
                             if (cfg.training.max_val_steps is not None) \
                                 and batch_idx >= (cfg.training.max_val_steps-1):
                                 break
@@ -304,25 +308,25 @@ class TrainDP3Workspace:
                 
             # checkpoint
             if (self.epoch % cfg.training.checkpoint_every) == 0 and cfg.checkpoint.save_ckpt:
-                # checkpointing
-                if cfg.checkpoint.save_last_ckpt:
-                    self.save_checkpoint()
-                if cfg.checkpoint.save_last_snapshot:
-                    self.save_snapshot()
+                if not cfg.policy.use_pc_color:
+                    # 1. 动态获取总输出目录，并在其下创建checkpoints子目录
+                    base_checkpoint_dir = os.path.join(self.output_dir, 'checkpoints')
+                    checkpoint_dir = os.path.join(base_checkpoint_dir, f'{self.cfg.task.name}_{self.cfg.training.seed}')
+    
+                    # 2. 确保这个checkpoints子目录存在，如果不存在就创建它
+                    os.makedirs(checkpoint_dir, exist_ok=True)
 
-                # sanitize metric names
-                metric_dict = dict()
-                for key, value in step_log.items():
-                    new_key = key.replace('/', '_')
-                    metric_dict[new_key] = value
-                
-                # We can't copy the last checkpoint here
-                # since save_checkpoint uses threads.
-                # therefore at this point the file might have been empty!
-                topk_ckpt_path = topk_manager.get_ckpt_path(metric_dict)
+                    save_path = os.path.join(checkpoint_dir, f'{self.epoch}.ckpt')
+                else:
+                    # 1. 动态获取总输出目录，并在其下创建checkpoints子目录
+                    base_checkpoint_dir = os.path.join(self.output_dir, 'checkpoints')
+                    checkpoint_dir = os.path.join(base_checkpoint_dir, f'{self.cfg.task.name}_w_rgb_{self.cfg.training.seed}')
+    
+                    # 2. 确保这个checkpoints子目录存在，如果不存在就创建它
+                    os.makedirs(checkpoint_dir, exist_ok=True)
 
-                if topk_ckpt_path is not None:
-                    self.save_checkpoint(path=topk_ckpt_path)
+                    save_path = os.path.join(checkpoint_dir, f'{self.epoch}.ckpt')
+                self.save_checkpoint(save_path)
             # ========= eval end for this epoch ==========
             policy.train()
 
@@ -375,6 +379,7 @@ class TrainDP3Workspace:
             exclude_keys=None,
             include_keys=None,
             use_thread=False):
+        print('saved in ', path)
         if path is None:
             path = pathlib.Path(self.output_dir).joinpath('checkpoints', f'{tag}.ckpt')
         else:

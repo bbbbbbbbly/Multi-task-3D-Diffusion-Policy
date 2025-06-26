@@ -77,14 +77,14 @@ ema:
   max_value: 0.9999
 
 dataloader:
-  batch_size: 64 # originally 128, modified for not out of memory
+  batch_size: 256 # originally 128, modified for not out of memory
   num_workers: 8
   shuffle: True
   pin_memory: True
   persistent_workers: False
 
 val_dataloader:
-  batch_size: 64 # originally 128, modified for not out of memory
+  batch_size: 256 # originally 128, modified for not out of memory
   num_workers: 8
   shuffle: False
   pin_memory: True
@@ -104,7 +104,7 @@ training:
   resume: True
   lr_scheduler: cosine
   lr_warmup_steps: 500
-  num_epochs: 3000
+  num_epochs: 3001
   gradient_accumulate_every: 1
   use_ema: True
   rollout_every: 200
