@@ -189,7 +189,16 @@ class TrainDP3Workspace:
                 for batch_idx, batch in enumerate(tepoch):
                     t1 = time.time()
                     # device transfer
+                    language_instructions = batch['obs'].pop('language', None)
+
+                    # print(f"--- DEBUG INFO ---")
+                    # print(f"Length of language_instructions in train.py: {len(language_instructions)}")
+                    # print(f"----------------------------------")
+
                     batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
+                    if language_instructions is not None:
+                        batch['obs']['language'] = language_instructions
+
                     if train_sampling_batch is None:
                         train_sampling_batch = batch
                 
@@ -272,7 +281,12 @@ class TrainDP3Workspace:
                     with tqdm.tqdm(val_dataloader, desc=f"Validation epoch {self.epoch}", 
                             leave=False, mininterval=cfg.training.tqdm_interval_sec) as tepoch:
                         for batch_idx, batch in enumerate(tepoch):
+                            language_instructions = batch['obs'].pop('language', None)
                             batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
+                            if language_instructions is not None:
+                                batch['obs']['language'] = language_instructions
+
+                            # batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
                             loss, loss_dict = self.model.compute_loss(batch)
                             val_losses.append(loss)
                             print(f'epoch {self.epoch}, eval loss: ', float(loss.cpu()))
@@ -288,7 +302,17 @@ class TrainDP3Workspace:
             if (self.epoch % cfg.training.sample_every) == 0:
                 with torch.no_grad():
                     # sample trajectory from training set, and evaluate difference
+                    language_instructions = train_sampling_batch['obs'].pop('language', None)
+
+                    # print(f"--- DEBUG INFO ---")
+                    # print(f"Length of language_instructions(2) in train.py: {len(language_instructions)}")
+                    # print(f"----------------------------------")
+
                     batch = dict_apply(train_sampling_batch, lambda x: x.to(device, non_blocking=True))
+                    if language_instructions is not None:
+                        train_sampling_batch['obs']['language'] = language_instructions
+                        batch['obs']['language'] = language_instructions
+
                     obs_dict = batch['obs']
                     gt_action = batch['action']
                     

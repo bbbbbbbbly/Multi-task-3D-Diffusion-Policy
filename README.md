@@ -1,6 +1,16 @@
 # <a href="https://3d-diffusion-policy.github.io">3D Diffusion Policy</a>
 
-## 6.24 Update
+## 6.30 Update: Multi-task DP3
+* 总共17个任务，目前按照每个任务10个demonstrations来算（如果都用100个得train 12天）
+* Language Encoder是sentence-transformers/all-MiniLM-L6-v2
+  * Language Encoder的parameters是frozen的
+  * 原编码后维度为384维，添加了MLP project到64维（和3D, Robot State保持一致）
+* 训练时在17个任务中均匀采样
+
+## 6.26 Update: Trainable on Robotwin Data
+* 原Robotwin数据有100个episode即100个demonstrations，要改成少的修改max_train_episode
+
+## 6.24 Update: Uni3D as Encoder
 * 跑通原版DP3后新增的环境问题
   * 需要git clone openpoints
     * 在openpoints/cpp/chamfer_dist 和 /cpp/pointnet2_batch 下 pip install

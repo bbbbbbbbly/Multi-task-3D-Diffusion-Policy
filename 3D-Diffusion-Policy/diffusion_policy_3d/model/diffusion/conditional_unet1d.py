@@ -288,6 +288,8 @@ class ConditionalUnet1D(nn.Module):
             if self.condition_type == 'cross_attention':
                 timestep_embed = timestep_embed.unsqueeze(1).expand(-1, global_cond.shape[1], -1)
             global_feature = torch.cat([timestep_embed, global_cond], axis=-1)
+        else:
+            global_feature = timestep_embed
 
 
         # encode local features

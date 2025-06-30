@@ -30,7 +30,7 @@ if [ $DEBUG = True ]; then
     echo -e "\033[33mDebug mode!\033[0m"
     echo -e "\033[33mDebug mode!\033[0m"
 else
-    wandb_mode=offline
+    wandb_mode=online
     echo -e "\033[33mTrain mode\033[0m"
 fi
 
@@ -38,6 +38,7 @@ cd 3D-Diffusion-Policy
 
 export PYTHONPATH=..${PYTHONPATH:+:$PYTHONPATH} # Add project root to PYTHONPATH to find openpoints
 export HYDRA_FULL_ERROR=1
+export TOKENIZERS_PARALLELISM=false
 
 # export MUJOCO_GL=osmesa
 

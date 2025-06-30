@@ -1,11 +1,11 @@
 defaults:
-  - task: adroit_hammer
+  - task: multi_task_robotwin
 
-name: train_dp3_uni3d_scratch
+name: train_dp3_uni3d_pretrained_multi_task
 
 task_name: ${task.name}
 shape_meta: ${task.shape_meta}
-exp_name: "dp3_uni3d_from_scratch"
+exp_name: "debug"
 
 # horizon: 4
 horizon: 16
@@ -56,9 +56,15 @@ policy:
   shape_meta: ${shape_meta}
 
   use_pc_color: true  # Uni3D需要颜色信息
-  pointnet_type: "uni3d"  # 使用从头训练的Uni3D编码器
+  pointnet_type: "uni3d_pretrained"  # 使用预训练Uni3D编码器
 
-  # Uni3D编码器配置（从头训练）
+  # Multi-task configuration
+  multi_task_config:
+    enabled: true
+    language_encoder: "sentence-transformers/all-MiniLM-L6-v2"
+    language_mlp_dim: 64
+
+  # Uni3D编码器配置
   pointcloud_encoder_cfg:
     pc_model: "eva02_large_patch14_448"
     pc_feat_dim: 1024
@@ -69,8 +75,8 @@ policy:
     drop_path_rate: 0.2
     pretrained_pc: null
     pc_encoder_dim: 512
-    use_pretrained_weights: false  # 从头训练，不加载预训练权重
-    pretrained_weights_path: null
+    use_pretrained_weights: true
+    pretrained_weights_path: "./droid_policy_learning/Uni3D_large/model.pt"  # 预训练权重路径
 
 ema:
   _target_: diffusion_policy_3d.model.diffusion.ema_model.EMAModel
@@ -81,14 +87,14 @@ ema:
   max_value: 0.9999
 
 dataloader:
-  batch_size: 20  # 减小批次大小以适应Uni3D的更大内存需求
+  batch_size: 20  # 进一步减少批次大小以适应Uni3D + 语言编码器
   num_workers: 8
   shuffle: True
   pin_memory: True
   persistent_workers: False
 
 val_dataloader:
-  batch_size: 20
+  batch_size: 20  # 进一步减少批次大小以适应Uni3D + 语言编码器
   num_workers: 8
   shuffle: False
   pin_memory: True
@@ -124,12 +130,12 @@ logging:
   id: null
   mode: online
   name: ${training.seed}
-  project: dp3_uni3d_scratch
+  project: dp3_uni3d_pretrained_multi_task
   resume: true
   tags:
   - dp3
-  - uni3d
-  - from_scratch
+  - uni3d_pretrained
+  - multi_task
 
 checkpoint:
   save_ckpt: False

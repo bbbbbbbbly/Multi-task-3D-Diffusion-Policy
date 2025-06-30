@@ -3,6 +3,7 @@ import math
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+import numpy as np
 from einops import rearrange, reduce
 from diffusers.schedulers.scheduling_ddpm import DDPMScheduler
 from termcolor import cprint
@@ -19,11 +20,11 @@ from diffusion_policy_3d.common.model_util import print_params
 from diffusion_policy_3d.model.vision.pointnet_extractor import DP3Encoder
 
 class DP3(BasePolicy):
-    def __init__(self, 
+    def __init__(self,
             shape_meta: dict,
             noise_scheduler: DDPMScheduler,
-            horizon, 
-            n_action_steps, 
+            horizon,
+            n_action_steps,
             n_obs_steps,
             num_inference_steps=None,
             obs_as_global_cond=True,
@@ -40,6 +41,7 @@ class DP3(BasePolicy):
             use_pc_color=False,
             pointnet_type="pointnet",
             pointcloud_encoder_cfg=None,
+            multi_task_config=None,
             # parameters passed to step
             **kwargs):
         super().__init__()
@@ -66,6 +68,7 @@ class DP3(BasePolicy):
                                                 pointcloud_encoder_cfg=pointcloud_encoder_cfg,
                                                 use_pc_color=use_pc_color,
                                                 pointnet_type=pointnet_type,
+                                                multi_task_config=multi_task_config,
                                                 )
 
         # create diffusion model
@@ -176,17 +179,36 @@ class DP3(BasePolicy):
         return trajectory
 
 
-    def predict_action(self, obs_dict: Dict[str, torch.Tensor]) -> Dict[str, torch.Tensor]:
+    def predict_action(self, obs_dict) -> Dict[str, torch.Tensor]:
         """
         obs_dict: must include "obs" key
         result: must include "action" key
         """
         # normalize input
-        nobs = self.normalizer.normalize(obs_dict)
+
+        # 1. (核心修改) 先把语言指令（非数值数据）从obs_dict中分离出来
+        language_instructions = obs_dict.get('language', None)
+
+        # print(f"--- DEBUG INFO ---")
+        # print(f"Length of language_instructions: {len(language_instructions)}")
+        # print(f"----------------------------------")
+
+        numerical_obs = {k: v for k, v in obs_dict.items() if k != 'language'}
+
+        nobs = self.normalizer.normalize(numerical_obs)
+
+        # 3. 再把语言指令加回到已经归一化好的nobs字典中，准备送给编码器
+        if language_instructions is not None:
+            nobs['language'] = language_instructions
+
         # this_n_point_cloud = nobs['imagin_robot'][..., :3] # only use coordinate
         if not self.use_pc_color:
             nobs['point_cloud'] = nobs['point_cloud'][..., :3]
         this_n_point_cloud = nobs['point_cloud']
+
+        # print(f"--- DEBUG INFO ---")
+        # print(f"Length of nobs['language']: {len(nobs['language'])}")
+        # print(f"----------------------------------")
         
         
         value = next(iter(nobs.values()))
@@ -205,8 +227,34 @@ class DP3(BasePolicy):
         global_cond = None
         if self.obs_as_global_cond:
             # condition through global feature
-            this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+
+            language_instructions_for_encoder = nobs.get('language', language_instructions)
+
+            # print(f"--- DEBUG INFO ---")
+            # print(f"Length of language_instructions_for_encoder: {len(language_instructions_for_encoder)}")
+            # print(f"----------------------------------")
+
+            numerical_obs_for_encoder = {k: v for k, v in nobs.items() if k != 'language'}
+
+            # b. 只对纯数值的观测数据进行reshape
+            this_nobs = dict_apply(numerical_obs_for_encoder, 
+                lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+
+            # c. 再把语言指令加回到处理好的this_nobs字典中
+            if language_instructions_for_encoder is not None:
+                repeated_instructions = np.repeat(language_instructions_for_encoder, To).tolist()
+                this_nobs['language'] = repeated_instructions
+
+            # print(f"--- DEBUG INFO (Before Encoder) ---")
+            # print(f"Length of this_nobs['language']: {len(this_nobs['language'])}")
+            # print(f"----------------------------------")
+
             nobs_features = self.obs_encoder(this_nobs)
+
+            # print(f"--- DEBUG INFO (After Encoder) ---")
+            # print(f"Shape of nobs_features: {nobs_features.shape}")
+            # print(f"----------------------------------")
+
             if "cross_attention" in self.condition_type:
                 # treat as a sequence
                 global_cond = nobs_features.reshape(B, self.n_obs_steps, -1)
@@ -217,8 +265,20 @@ class DP3(BasePolicy):
             cond_data = torch.zeros(size=(B, T, Da), device=device, dtype=dtype)
             cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
         else:
+            # 这里作者应该写错了，全用horizon的数据不能切片
             # condition through impainting
-            this_nobs = dict_apply(nobs, lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+            language_instructions_for_encoder = nobs.get('language', language_instructions)
+            numerical_obs_for_encoder = {k: v for k, v in nobs.items() if k != 'language'}
+
+            # b. 只对纯数值的观测数据进行reshape
+            this_nobs = dict_apply(numerical_obs_for_encoder, 
+                lambda x: x[:,:To,...].reshape(-1,*x.shape[2:]))
+
+            # c. 再把语言指令加回到处理好的this_nobs字典中
+            if language_instructions_for_encoder is not None:
+                repeated_instructions = np.repeat(language_instructions_for_encoder, To).tolist()
+                this_nobs['language'] = repeated_instructions
+
             nobs_features = self.obs_encoder(this_nobs)
             # reshape back to B, T, Do
             nobs_features = nobs_features.reshape(B, To, -1)
@@ -226,6 +286,10 @@ class DP3(BasePolicy):
             cond_mask = torch.zeros_like(cond_data, dtype=torch.bool)
             cond_data[:,:To,Da:] = nobs_features
             cond_mask[:,:To,Da:] = True
+        
+        # print(f"--- DEBUG INFO ---")
+        # print(f"Shape of global_cond before sampling: {global_cond.shape}")
+        # print(f"--------------------")
 
         # run sampling
         nsample = self.conditional_sample(
@@ -260,8 +324,18 @@ class DP3(BasePolicy):
 
     def compute_loss(self, batch):
         # normalize input
+        obs_dict = batch['obs']
 
-        nobs = self.normalizer.normalize(batch['obs'])
+        # 1. (核心修改) 先把语言指令（非数值数据）从obs_dict中分离出来
+        language_instructions = obs_dict.get('language', None)
+        numerical_obs = {k: v for k, v in obs_dict.items() if k != 'language'}
+
+        nobs = self.normalizer.normalize(numerical_obs)
+
+        # 3. 再把语言指令加回到已经归一化好的nobs字典中，准备送给编码器
+        if language_instructions is not None:
+            nobs['language'] = language_instructions
+
         nactions = self.normalizer['action'].normalize(batch['action'])
 
         if not self.use_pc_color:
@@ -279,8 +353,26 @@ class DP3(BasePolicy):
        
         if self.obs_as_global_cond:
             # reshape B, T, ... to B*T
-            this_nobs = dict_apply(nobs, 
+
+            # a. 先把语言指令（非Tensor数据）从nobs中分离出来
+            language_instructions = nobs.get('language', None)
+            numerical_obs = {k: v for k, v in nobs.items() if k != 'language'}
+
+            this_nobs = dict_apply(numerical_obs, 
                 lambda x: x[:,:self.n_obs_steps,...].reshape(-1,*x.shape[2:]))
+            
+            # c. 再把语言指令加回到处理好的this_nobs字典中
+            if language_instructions is not None:
+                
+                # 获取需要重复的次数
+                n_obs_steps = self.n_obs_steps
+    
+                # 使用np.repeat将每条指令重复n_obs_steps次
+                # 例如: ['a', 'b'] -> ['a', 'a', 'b', 'b']
+                repeated_instructions = np.repeat(language_instructions, n_obs_steps).tolist()
+
+                this_nobs['language'] = repeated_instructions
+
             nobs_features = self.obs_encoder(this_nobs)
 
             if "cross_attention" in self.condition_type:
@@ -293,8 +385,17 @@ class DP3(BasePolicy):
             this_n_point_cloud = this_nobs['point_cloud'].reshape(batch_size,-1, *this_nobs['point_cloud'].shape[1:])
             this_n_point_cloud = this_n_point_cloud[..., :3]
         else:
+            T = self.horizon
             # reshape B, T, ... to B*T
-            this_nobs = dict_apply(nobs, lambda x: x.reshape(-1, *x.shape[2:]))
+            language_instructions = nobs.get('language', None)
+            numerical_obs = {k: v for k, v in nobs.items() if k != 'language'}
+
+            this_nobs = dict_apply(numerical_obs, lambda x: x.reshape(-1, *x.shape[2:]))
+
+            if language_instructions is not None:
+                repeated_instructions = np.repeat(language_instructions, T).tolist()
+                this_nobs['language'] = repeated_instructions
+
             nobs_features = self.obs_encoder(this_nobs)
             # reshape back to B, T, Do
             nobs_features = nobs_features.reshape(batch_size, horizon, -1)

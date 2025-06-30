@@ -33,7 +33,7 @@ policy:
   crop_shape:
   - 80
   - 80
-  encoder_output_dim: 1024  # Uni3D输出维度
+  encoder_output_dim: 64  # Uni3D输出维度
   horizon: ${horizon}
   kernel_size: 5
   n_action_steps: ${n_action_steps}
@@ -108,7 +108,7 @@ training:
   resume: True
   lr_scheduler: cosine
   lr_warmup_steps: 500
-  num_epochs: 3000
+  num_epochs: 3001
   gradient_accumulate_every: 1
   use_ema: True
   rollout_every: 200

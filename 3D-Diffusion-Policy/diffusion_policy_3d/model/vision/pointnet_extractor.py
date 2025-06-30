@@ -204,22 +204,27 @@ class PointNetEncoderXYZ(nn.Module):
 
 
 class DP3Encoder(nn.Module):
-    def __init__(self, 
-                 observation_space: Dict, 
+    def __init__(self,
+                 observation_space: Dict,
                  img_crop_shape=None,
                  out_channel=256,
                  state_mlp_size=(64, 64), state_mlp_activation_fn=nn.ReLU,
                  pointcloud_encoder_cfg=None,
                  use_pc_color=False,
                  pointnet_type='pointnet',
+                 multi_task_config=None,
                  ):
         super().__init__()
         self.imagination_key = 'imagin_robot'
         self.state_key = 'agent_pos'
         self.point_cloud_key = 'point_cloud'
         self.rgb_image_key = 'image'
+        self.language_key = 'language'
         self.n_output_channels = out_channel
-        
+
+        # Multi-task language support
+        self.multi_task_enabled = multi_task_config is not None
+
         self.use_imagined_robot = self.imagination_key in observation_space.keys()
         self.point_cloud_shape = observation_space[self.point_cloud_key]
         self.state_shape = observation_space[self.state_key]
@@ -313,7 +318,28 @@ class DP3Encoder(nn.Module):
         self.n_output_channels  += output_dim
         self.state_mlp = nn.Sequential(*create_mlp(self.state_shape[0], output_dim, net_arch, state_mlp_activation_fn))
 
-        cprint(f"[DP3Encoder] output dim: {self.n_output_channels}", "red")
+        # Initialize language encoder for multi-task mode
+        if self.multi_task_enabled:
+            try:
+                from sentence_transformers import SentenceTransformer
+                self.language_encoder = SentenceTransformer(
+                    multi_task_config.get('language_encoder', 'sentence-transformers/all-MiniLM-L6-v2')
+                )
+                # Freeze language encoder parameters
+                for param in self.language_encoder.parameters():
+                    param.requires_grad = False
+
+                # Language feature MLP (384 -> 64 to match state features)
+                language_mlp_dim = multi_task_config.get('language_mlp_dim', 64)
+                self.language_mlp = nn.Sequential(*create_mlp(384, language_mlp_dim, [128], state_mlp_activation_fn))
+                self.n_output_channels += language_mlp_dim
+
+                cprint(f"[DP3Encoder] Multi-task mode enabled with language encoder", "green")
+                cprint(f"[DP3Encoder] Language MLP output dim: {language_mlp_dim}", "green")
+            except ImportError:
+                raise ImportError("sentence-transformers is required for multi-task mode. Install with: pip install sentence-transformers")
+
+        cprint(f"[DP3Encoder] Final output dim: {self.n_output_channels}", "red")
 
 
     def forward(self, observations: Dict) -> torch.Tensor:
@@ -336,10 +362,43 @@ class DP3Encoder(nn.Module):
             
         # points: B * N * (3 or 6)
         pn_feat = self.extractor(points)    # B * out_channel
-            
+
         state = observations[self.state_key]
         state_feat = self.state_mlp(state)  # B * 64
-        final_feat = torch.cat([pn_feat, state_feat], dim=-1)
+
+        # Prepare feature list for concatenation
+        features = [pn_feat, state_feat]
+
+        # Add language features for multi-task mode
+        if self.multi_task_enabled and self.language_key in observations:
+            language_instructions = observations[self.language_key]
+
+            # Handle batch of instructions
+            if isinstance(language_instructions, (list, tuple)):
+                # Encode batch of instructions
+                with torch.no_grad():
+                    language_embeddings = self.language_encoder.encode(
+                        language_instructions,
+                        convert_to_tensor=True,
+                        device=pn_feat.device,
+                        show_progress_bar=False
+                    )
+            else:
+                # Single instruction
+                with torch.no_grad():
+                    language_embeddings = self.language_encoder.encode(
+                        [language_instructions],
+                        convert_to_tensor=True,
+                        device=pn_feat.device,
+                        show_progress_bar=False
+                    )
+                    language_embeddings = language_embeddings[0:1]  # Keep batch dimension
+
+            # Apply language MLP
+            language_feat = self.language_mlp(language_embeddings)  # B * 64
+            features.append(language_feat)
+
+        final_feat = torch.cat(features, dim=-1)
         return final_feat
 
 
