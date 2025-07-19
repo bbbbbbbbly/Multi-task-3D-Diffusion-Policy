@@ -1,6 +1,6 @@
 # Multi-task 3D Diffusion Policy
 
-> I developed a multi-task DP3 with robotwin 1.0 benchmark.
+> I developed a multi-task DP3 with Robotwin 1.0 benchmark.
 
 * The language encoder is sentence-transformers/all-MiniLM-L6-v2 and the vision(point cloud) encoder could be either DP3 encoder or Uni3D encoder.
 
