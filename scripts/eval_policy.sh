@@ -19,6 +19,7 @@ gpu_id=${5}
 
 cd 3D-Diffusion-Policy
 
+export PYTHONPATH=..${PYTHONPATH:+:$PYTHONPATH} # Add project root to PYTHONPATH to find openpoints
 export HYDRA_FULL_ERROR=1
 export CUDA_VISIBLE_DEVICES=${gpu_id}
 python eval.py --config-name=${config_name}.yaml \

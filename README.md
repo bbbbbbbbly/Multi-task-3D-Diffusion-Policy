@@ -1,27 +1,55 @@
-# <a href="https://3d-diffusion-policy.github.io">3D Diffusion Policy</a>
+# Multi-task 3D Diffusion Policy
 
-## 6.30 Update: Multi-task DP3
-* 总共17个任务，目前按照每个任务10个demonstrations来算（如果都用100个得train 12天）
-* Language Encoder是sentence-transformers/all-MiniLM-L6-v2
-  * Language Encoder的parameters是frozen的
-  * 原编码后维度为384维，添加了MLP project到64维（和3D, Robot State保持一致）
-* 训练时在17个任务中均匀采样
+> I developed a multi-task DP3 with robotwin 1.0 benchmark.
 
-## 6.26 Update: Trainable on Robotwin Data
-* 原Robotwin数据有100个episode即100个demonstrations，要改成少的修改max_train_episode
+* The language encoder is sentence-transformers/all-MiniLM-L6-v2 and the vision(point cloud) encoder could be either DP3 encoder or Uni3D encoder.
 
-## 6.24 Update: Uni3D as Encoder
-* 跑通原版DP3后新增的环境问题
-  * 需要git clone openpoints
-    * 在openpoints/cpp/chamfer_dist 和 /cpp/pointnet2_batch 下 pip install
-  * 和FP3中一样，把model.pt下载到3D-Diffusion-Policy/Uni3D_large下
-  * 其它的根据报错应该就能解决
-* 执行训练命令
+## Guide
+
+**Note**: Before follow the guidance below, you'd better ensure your conda environment has been able to run the original DP3.
+
+1. Activate dp3 environment that could run original dp3
+```bash
+conda activate dp3
 ```
-bash scripts/train_policy.sh dp3_uni3d_pretrained adroit_hammer 0000 0 0
+
+2. Configure Robotwin 1.0 environment
+   * Please follow `RoboTwin1.0_3d_policy/INSTALLATION.md`. Remember install all packages under dp3 conda environment.  
+     * You might encounter sapien conflict between Robotwin 1.0 and dexart. I recommend you to ignore dexart if you focus on Robotwin multi-task DP3.
+     * Note that you need to move/copy aloha_maniskill_sim to `third_party/` and move/copy `RoboTwin1.0_3d_policy/models/` to `3D-Diffusion-Policy/` instead of leaving them in `RoboTwin1.0_3d_policy/`.
+
+3. Other environment configuration
+```bash
+pip install timm multimethod shortuuid easydict natsort
+conda update -c conda-forge libstdcxx-ng
+conda install -c conda-forge gxx_linux-64
+conda install -c conda-forge cxx-compiler
+```
+
+4. Download Uni3D weight
+    * Download [Uni3D Model](https://huggingface.co/BAAI/Uni3D/blob/main/modelzoo/uni3d-l/model.pt) into `3D-Diffusion-Policy/Uni3D_large/`.
+
+5. Generate Robotwin 1.0 training data for DP3
+     * Please follow the Robotwin 1.0 guidance to generate Robotwin 1.0 data for DP3, the data format should be '.zarr'.
+     * Then put the 17-task data in `3D-Diffusion-Policy/data/multi-task-data` for multi-task training and put the data in `3D-Diffusion-Policy/data/robotwin` for single task training.
+
+6. Training examples
+```bash
+bash scripts/train_policy.sh dp3_uni3d_pretrained robotwin_block_hammer_beat 0000 0 0
+bash scripts/train_policy.sh dp3 robotwin_block_hammer_beat 0000 0 0
+bash scripts/train_policy.sh dp3_multi_task multi_task_robotwin 0000 0 0
+```
+
+7. Evaluating examples
+```bash
+bash scripts/robotwin_eval.sh dp3 block_hammer_beat 0000 0 0
+bash scripts/robotwin_eval.sh dp3_uni3d_scratch block_hammer_beat 0000 0 0
+bash scripts/robotwin_multi_task_eval.sh dp3_multi_task multi_task_robotwin 0000 0 0
 ```
 
 ---
+
+Below is the original 3D-Diffusion-Policy.
 
 <a href="https://3d-diffusion-policy.github.io"><strong>Project Page</strong></a>
   |

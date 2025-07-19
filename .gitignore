@@ -53,3 +53,14 @@ src/
 3D-Diffusion-Policy/Uni3D_large/model.pt
 third_party/VRL3/vrl3_ckpts.zip
 third_party/dexart-release/dexart_assets.zip
+
+# 7.11 Update
+aloha_maniskill_sim/
+third_party/aloha_maniskill_sim/
+models/
+3D-Diffusion-Policy/models/
+3D-Diffusion-Policy/Uni3D_tiny/model.pt
+aloha_urdf.zip
+main_models.zip
+RoboTwin1.0_3d_policy/eval_video/
+RoboTwin1.0_3d_policy/.git/

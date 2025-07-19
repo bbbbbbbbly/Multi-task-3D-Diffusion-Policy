@@ -21,6 +21,7 @@ import tqdm
 import numpy as np
 from termcolor import cprint
 import shutil
+import pdb
 import time
 import threading
 from hydra.core.hydra_config import HydraConfig
@@ -88,7 +89,7 @@ class TrainDP3Workspace:
             verbose = False
         
         RUN_ROLLOUT = False
-        RUN_VALIDATION = False # reduce time cost
+        RUN_VALIDATION = True # reduce time cost
         
         # resume training
         if cfg.training.resume:
@@ -289,7 +290,7 @@ class TrainDP3Workspace:
                             # batch = dict_apply(batch, lambda x: x.to(device, non_blocking=True))
                             loss, loss_dict = self.model.compute_loss(batch)
                             val_losses.append(loss)
-                            print(f'epoch {self.epoch}, eval loss: ', float(loss.cpu()))
+                            # print(f'epoch {self.epoch}, eval loss: ', float(loss.cpu()))
                             if (cfg.training.max_val_steps is not None) \
                                 and batch_idx >= (cfg.training.max_val_steps-1):
                                 break
@@ -335,21 +336,21 @@ class TrainDP3Workspace:
                 if not cfg.policy.use_pc_color:
                     # 1. 动态获取总输出目录，并在其下创建checkpoints子目录
                     base_checkpoint_dir = os.path.join(self.output_dir, 'checkpoints')
-                    checkpoint_dir = os.path.join(base_checkpoint_dir, f'{self.cfg.task.name}_{self.cfg.training.seed}')
+                    # checkpoint_dir = os.path.join(base_checkpoint_dir, f'{self.cfg.task.name}_{self.cfg.training.seed}')
     
-                    # 2. 确保这个checkpoints子目录存在，如果不存在就创建它
-                    os.makedirs(checkpoint_dir, exist_ok=True)
+                    # # 2. 确保这个checkpoints子目录存在，如果不存在就创建它
+                    # os.makedirs(checkpoint_dir, exist_ok=True)
 
-                    save_path = os.path.join(checkpoint_dir, f'{self.epoch}.ckpt')
+                    save_path = os.path.join(base_checkpoint_dir, f'{self.epoch}.ckpt')
                 else:
                     # 1. 动态获取总输出目录，并在其下创建checkpoints子目录
                     base_checkpoint_dir = os.path.join(self.output_dir, 'checkpoints')
-                    checkpoint_dir = os.path.join(base_checkpoint_dir, f'{self.cfg.task.name}_w_rgb_{self.cfg.training.seed}')
+                    # checkpoint_dir = os.path.join(base_checkpoint_dir, f'{self.cfg.task.name}_w_rgb_{self.cfg.training.seed}')
     
-                    # 2. 确保这个checkpoints子目录存在，如果不存在就创建它
-                    os.makedirs(checkpoint_dir, exist_ok=True)
+                    # # 2. 确保这个checkpoints子目录存在，如果不存在就创建它
+                    # os.makedirs(checkpoint_dir, exist_ok=True)
 
-                    save_path = os.path.join(checkpoint_dir, f'{self.epoch}.ckpt')
+                    save_path = os.path.join(base_checkpoint_dir, f'{self.epoch}.ckpt')
                 self.save_checkpoint(save_path)
             # ========= eval end for this epoch ==========
             policy.train()
@@ -366,7 +367,10 @@ class TrainDP3Workspace:
         
         cfg = copy.deepcopy(self.cfg)
         
+        # pdb.set_trace()
+
         lastest_ckpt_path = self.get_checkpoint_path(tag="latest")
+        print(lastest_ckpt_path)
         if lastest_ckpt_path.is_file():
             cprint(f"Resuming from checkpoint {lastest_ckpt_path}", 'magenta')
             self.load_checkpoint(path=lastest_ckpt_path)
@@ -390,6 +394,31 @@ class TrainDP3Workspace:
         for key, value in runner_log.items():
             if isinstance(value, float):
                 cprint(f"{key}: {value:.4f}", 'magenta')
+    
+    def get_policy(self, cfg, checkpoint_num=3000):
+    # load the latest checkpoint
+    
+        cfg = copy.deepcopy(self.cfg)
+        # env_runner: BaseRunner
+        # env_runner = hydra.utils.instantiate(
+        #     cfg.task.env_runner,
+        #     output_dir=self.output_dir)
+        # assert isinstance(env_runner, BaseRunner)
+        
+        ckpt_file = self.get_checkpoint_path(tag=str(checkpoint_num))
+        assert ckpt_file.is_file(), f"ckpt file doesn't exist, {ckpt_file}"
+        
+        if ckpt_file.is_file():
+            cprint(f"Resuming from checkpoint {ckpt_file}", 'magenta')
+            self.load_checkpoint(path=ckpt_file)
+        
+        policy = self.model
+        if cfg.training.use_ema:
+            policy = self.ema_model
+        policy.eval()
+        policy.cuda()
+        return policy
+
         
     @property
     def output_dir(self):
@@ -442,7 +471,7 @@ class TrainDP3Workspace:
         return str(path.absolute())
     
     def get_checkpoint_path(self, tag='latest'):
-        if tag=='latest':
+        if tag: # =='latest':
             return pathlib.Path(self.output_dir).joinpath('checkpoints', f'{tag}.ckpt')
         elif tag=='best': 
             # the checkpoints are saved as format: epoch={}-test_mean_score={}.ckpt

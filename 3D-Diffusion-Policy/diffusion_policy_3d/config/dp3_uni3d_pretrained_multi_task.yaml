@@ -5,7 +5,7 @@ name: train_dp3_uni3d_pretrained_multi_task
 
 task_name: ${task.name}
 shape_meta: ${task.shape_meta}
-exp_name: "debug"
+exp_name: "multi-task_dp3_uni3d_pretrained"
 
 # horizon: 4
 horizon: 16
@@ -55,7 +55,7 @@ policy:
   obs_as_global_cond: true
   shape_meta: ${shape_meta}
 
-  use_pc_color: true  # Uni3D需要颜色信息
+  use_pc_color: false  # Uni3D需要颜色信息
   pointnet_type: "uni3d_pretrained"  # 使用预训练Uni3D编码器
 
   # Multi-task configuration
@@ -66,8 +66,8 @@ policy:
 
   # Uni3D编码器配置
   pointcloud_encoder_cfg:
-    pc_model: "eva02_large_patch14_448"
-    pc_feat_dim: 1024
+    pc_model: "eva02_tiny_patch14_224"
+    pc_feat_dim: 192
     embed_dim: 1024
     group_size: 32
     num_group: 512
@@ -76,7 +76,7 @@ policy:
     pretrained_pc: null
     pc_encoder_dim: 512
     use_pretrained_weights: true
-    pretrained_weights_path: "./droid_policy_learning/Uni3D_large/model.pt"  # 预训练权重路径
+    pretrained_weights_path: "Uni3D_tiny/model.pt"  # 预训练权重路径
 
 ema:
   _target_: diffusion_policy_3d.model.diffusion.ema_model.EMAModel
@@ -87,14 +87,14 @@ ema:
   max_value: 0.9999
 
 dataloader:
-  batch_size: 20  # 进一步减少批次大小以适应Uni3D + 语言编码器
+  batch_size: 64  # 进一步减少批次大小以适应Uni3D + 语言编码器
   num_workers: 8
   shuffle: True
   pin_memory: True
   persistent_workers: False
 
 val_dataloader:
-  batch_size: 20  # 进一步减少批次大小以适应Uni3D + 语言编码器
+  batch_size: 64  # 进一步减少批次大小以适应Uni3D + 语言编码器
   num_workers: 8
   shuffle: False
   pin_memory: True
@@ -115,10 +115,10 @@ training:
   lr_scheduler: cosine
   lr_warmup_steps: 500
   num_epochs: 3001
-  gradient_accumulate_every: 1
+  gradient_accumulate_every: 4
   use_ema: True
   rollout_every: 200
-  checkpoint_every: 200
+  checkpoint_every: 25
   val_every: 1
   sample_every: 5
   max_train_steps: null

@@ -184,6 +184,13 @@ class DP3(BasePolicy):
         obs_dict: must include "obs" key
         result: must include "action" key
         """
+
+        # 调试 normalizer 状态
+        # print(f"=== Normalizer 调试信息 ===")
+        # print(f"Normalizer keys: {list(self.normalizer.keys()) if hasattr(self.normalizer, 'keys') else 'No keys method'}")
+
+    
+
         # normalize input
 
         # 1. (核心修改) 先把语言指令（非数值数据）从obs_dict中分离出来
@@ -196,6 +203,7 @@ class DP3(BasePolicy):
         numerical_obs = {k: v for k, v in obs_dict.items() if k != 'language'}
 
         nobs = self.normalizer.normalize(numerical_obs)
+
 
         # 3. 再把语言指令加回到已经归一化好的nobs字典中，准备送给编码器
         if language_instructions is not None:
@@ -245,10 +253,6 @@ class DP3(BasePolicy):
                 repeated_instructions = np.repeat(language_instructions_for_encoder, To).tolist()
                 this_nobs['language'] = repeated_instructions
 
-            # print(f"--- DEBUG INFO (Before Encoder) ---")
-            # print(f"Length of this_nobs['language']: {len(this_nobs['language'])}")
-            # print(f"----------------------------------")
-
             nobs_features = self.obs_encoder(this_nobs)
 
             # print(f"--- DEBUG INFO (After Encoder) ---")
@@ -291,6 +295,7 @@ class DP3(BasePolicy):
         # print(f"Shape of global_cond before sampling: {global_cond.shape}")
         # print(f"--------------------")
 
+        # print(f"global_cond has NaNs before sampling: {torch.isnan(global_cond).any()}")
         # run sampling
         nsample = self.conditional_sample(
             cond_data, 

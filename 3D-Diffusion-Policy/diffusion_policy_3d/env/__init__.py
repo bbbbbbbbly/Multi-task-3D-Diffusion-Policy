@@ -1,7 +1,13 @@
 
 from .adroit import AdroitEnv
-from .dexart import DexArtEnv
 from .metaworld import MetaWorldEnv
+from .robotwin import RobotwinEnv
+
+# Try to import DexArt, but don't fail if it's not available
+# try:
+#     from .dexart import DexArtEnv
+# except ImportError:
+#     DexArtEnv = None
 
 
 

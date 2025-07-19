@@ -3,6 +3,8 @@
 # bash scripts/train_policy.sh dp3 dexart_laptop 0322 0 0
 # bash scripts/train_policy.sh simple_dp3 adroit_hammer 0322 0 0
 # bash scripts/train_policy.sh dp3 metaworld_basketball 0602 0 0
+# bash scripts/train_policy.sh dp3 robotwin_blocks_stack_hard 9999 0 2
+# bash scripts/train_policy.sh dp3_multi_task multi_task_robotwin 9999 0 2
 
 
 
@@ -30,7 +32,7 @@ if [ $DEBUG = True ]; then
     echo -e "\033[33mDebug mode!\033[0m"
     echo -e "\033[33mDebug mode!\033[0m"
 else
-    wandb_mode=online
+    wandb_mode=offline
     echo -e "\033[33mTrain mode\033[0m"
 fi
 

@@ -1,11 +1,11 @@
 defaults:
-  - task: multi_task
+  - task: multi_task_robotwin
 
 name: train_dp3_multi_task
 
 task_name: ${task.name}
 shape_meta: ${task.shape_meta}
-exp_name: "debug"
+exp_name: "multi-task_dp3"
 
 # horizon: 4
 horizon: 16
@@ -80,14 +80,14 @@ ema:
   max_value: 0.9999
 
 dataloader:
-  batch_size: 512 # Reduced for multi-task training
+  batch_size: 256 # Reduced for multi-task training
   num_workers: 8
   shuffle: True
   pin_memory: True
   persistent_workers: False
 
 val_dataloader:
-  batch_size: 512 # Reduced for multi-task training
+  batch_size: 256 # Reduced for multi-task training
   num_workers: 8
   shuffle: False
   pin_memory: True
@@ -111,7 +111,7 @@ training:
   gradient_accumulate_every: 1
   use_ema: True
   rollout_every: 200
-  checkpoint_every: 200
+  checkpoint_every: 1
   val_every: 1
   sample_every: 1
   max_train_steps: null
@@ -122,7 +122,7 @@ logging:
   group: ${exp_name}
   id: null
   mode: online
-  name: ${training.seed}
+  name: ${task.name}
   project: dp3_multi_task
   resume: true
   tags:

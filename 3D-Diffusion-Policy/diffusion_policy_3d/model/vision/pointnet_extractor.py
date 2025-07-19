@@ -5,7 +5,9 @@ import torchvision
 import copy
 import timm
 import os
+import pdb
 
+from pytorch3d.ops import sample_farthest_points
 from typing import Optional, Dict, Tuple, Union, List, Type
 from termcolor import cprint
 
@@ -291,7 +293,7 @@ class DP3Encoder(nn.Module):
                 'pretrained_pc': None,
                 'pc_encoder_dim': 512,
                 'use_pretrained_weights': True,
-                'pretrained_weights_path': './droid_policy_learning/Uni3D_large/model.pt',  # 默认路径
+                'pretrained_weights_path': 'Uni3D_large/model.pt',  # 默认路径
             }
             
             # 使用用户提供的配置覆盖默认值
@@ -359,12 +361,27 @@ class DP3Encoder(nn.Module):
             elif points.shape[-1] > 6:
                 # 如果有超过6个通道，只取前6个
                 points = points[..., :6]
+
+        # print('============= print Encoder -> points =============\n')
+        # print(points)
+        # print('============= print Encoder -> points =============\n')
             
+        # pdb.set_trace()
+
         # points: B * N * (3 or 6)
         pn_feat = self.extractor(points)    # B * out_channel
+        # print(f"pn_feat has NaNs after self.extractor: {torch.isnan(pn_feat).any()}")
+
+        # print('============= print Encoder -> pn_feat =============\n')
+        # print(pn_feat)
+        # print('============= print Encoder -> pn_feat =============\n')
 
         state = observations[self.state_key]
         state_feat = self.state_mlp(state)  # B * 64
+
+        # print('============= print Encoder -> state_feat =============\n')
+        # print(state_feat)
+        # print('============= print Encoder -> state_feat =============\n')
 
         # Prepare feature list for concatenation
         features = [pn_feat, state_feat]
@@ -397,6 +414,10 @@ class DP3Encoder(nn.Module):
             # Apply language MLP
             language_feat = self.language_mlp(language_embeddings)  # B * 64
             features.append(language_feat)
+        
+        # print('============= print Encoder -> features =============\n')
+        # print(features)
+        # print('============= print Encoder -> features =============\n')
 
         final_feat = torch.cat(features, dim=-1)
         return final_feat
@@ -423,16 +444,30 @@ class DP3Encoder(nn.Module):
 #         idx = torch.randperm(N)[:npoint].unsqueeze(0).expand(B, -1)
 #         return idx
 
-from openpoints.models.layers import furthest_point_sample
+# from openpoints.models.layers import furthest_point_sample
 def fps(data, number):
     '''
         data B N 3
         number int
     '''
-    fps_idx = furthest_point_sample(data[:, :, :3].contiguous(), number)
+    xyz_coordinates = data[:, :, :3]
+
+    # sample_farthest_points 返回两个值：sampled_xyz (采样的坐标) 和 idx (索引)
+    # 我们只需要索引 idx 来从原始数据中 gather 点
+    # PyTorch3D 的函数签名是 sample_farthest_points(xyz: Tensor, K: int, ...)
+    _, fps_idx = sample_farthest_points(xyz_coordinates, K=number) # K=number 是要采样的点数
+
+    # fps_idx 是 (B, number) 的 LongTensor 索引
+    # 使用 gather 从原始数据 data (B, N, C) 中选取点
+    # 需要将 fps_idx 扩展到与 data 相同的维度，以便 gather 操作
     fps_data = torch.gather(
         data, 1, fps_idx.unsqueeze(-1).long().expand(-1, -1, data.shape[-1]))
+    
     return fps_data
+    # fps_idx = furthest_point_sample(data[:, :, :3].contiguous(), number)
+    # fps_data = torch.gather(
+    #     data, 1, fps_idx.unsqueeze(-1).long().expand(-1, -1, data.shape[-1]))
+    # return fps_data
 # from pointnet2_ops import pointnet2_utils
 # def fps(data, number):
 #     '''
@@ -648,8 +683,12 @@ class Uni3DPointcloudEncoder(nn.Module):
         
         # 加载预训练权重（如果指定）
         if use_pretrained_weights: # and pretrained_weights_path is not None:
-            cur_dir =os.getcwd()
-            state_dict = torch.load(os.path.join(cur_dir, 'Uni3D_large/model.pt'))['module']
+            current_file_path_abs = os.path.abspath(__file__)
+            current_directory_os = os.path.dirname(current_file_path_abs)
+            cur_dir = os.path.join(current_directory_os, '../../..')
+            # cur_dir =os.getcwd()
+            load_weight_path = os.path.join(cur_dir, pretrained_weights_path)
+            state_dict = torch.load(load_weight_path)['module']
             
             for key in list(state_dict.keys()):
                 state_dict[key.replace('point_encoder.', '').replace('visual.', 'visual_')] = state_dict[key]
@@ -658,7 +697,7 @@ class Uni3DPointcloudEncoder(nn.Module):
                     del state_dict[key]
             self.load_state_dict(state_dict)
             # self._load_pretrained_weights(pretrained_weights_path)
-            cprint(f"[Uni3DPointcloudEncoder] 已加载预训练权重从: {pretrained_weights_path}", "green")
+            cprint(f"[Uni3DPointcloudEncoder] 已加载预训练权重从: {load_weight_path}", "green")
         else:
             cprint(f"[Uni3DPointcloudEncoder] 使用随机初始化权重（从头训练模式）", "yellow")
 

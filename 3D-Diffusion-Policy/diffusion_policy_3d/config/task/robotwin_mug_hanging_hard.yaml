@@ -1,4 +1,4 @@
-name: block_hammer_beat
+name: mug_hanging_hard
 
 shape_meta: &shape_meta
   # acceptable types: rgb, low_dim
@@ -13,18 +13,22 @@ shape_meta: &shape_meta
     shape: [14]
 
 env_runner:
-  _target_: diffusion_policy_3d.env_runner.robot_runner.RobotRunner
-  max_steps: 300
+  _target_: diffusion_policy_3d.env_runner.robotwin_runner.RobotwinRunner
+  eval_episodes: 20
+  max_steps: 400
   n_obs_steps: ${n_obs_steps}
   n_action_steps: ${n_action_steps}
-  task_name: robot
+  fps: 10
+  seed: 42 # 注意这里的seed应该要跟dataset中保持一致，这个seed用于eval
+  task_name: mug_hanging_hard
+  use_point_crop: ${policy.use_point_crop}
 
 dataset:
   _target_: diffusion_policy_3d.dataset.robotwin_dataset.RobotwinDataset
-  zarr_path: data/block_hammer_beat.zarr
+  zarr_path: data/robotwin/mug_hanging_hard.zarr
   horizon: ${horizon}
   pad_before: ${eval:'${n_obs_steps}-1'}
   pad_after: ${eval:'${n_action_steps}-1'}
-  seed: 0
+  seed: 42
   val_ratio: 0.02
   max_train_episodes: null
