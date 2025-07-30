@@ -103,7 +103,7 @@ class PointNetEncoderXYZRGB(nn.Module):
         else:
             raise NotImplementedError(f"final_norm: {final_norm}")
          
-    def forward(self, x):
+    def forward(self, x, eval):
         x = self.mlp(x)
         x = torch.max(x, 1)[0]
         x = self.final_projection(x)
@@ -175,7 +175,7 @@ class PointNetEncoderXYZ(nn.Module):
             self.mlp[6].register_backward_hook(self.save_gradient)
          
          
-    def forward(self, x):
+    def forward(self, x, eval):
         x = self.mlp(x)
         x = torch.max(x, 1)[0]
         x = self.final_projection(x)
@@ -319,6 +319,8 @@ class DP3Encoder(nn.Module):
 
         self.n_output_channels  += output_dim
         self.state_mlp = nn.Sequential(*create_mlp(self.state_shape[0], output_dim, net_arch, state_mlp_activation_fn))
+        # import pdb
+        # pdb.set_trace()
 
         # Initialize language encoder for multi-task mode
         if self.multi_task_enabled:
@@ -344,7 +346,7 @@ class DP3Encoder(nn.Module):
         cprint(f"[DP3Encoder] Final output dim: {self.n_output_channels}", "red")
 
 
-    def forward(self, observations: Dict) -> torch.Tensor:
+    def forward(self, observations: Dict, eval=False) -> torch.Tensor:
         points = observations[self.point_cloud_key]
         assert len(points.shape) == 3, cprint(f"point cloud shape: {points.shape}, length should be 3", "red")
         if self.use_imagined_robot:
@@ -369,7 +371,7 @@ class DP3Encoder(nn.Module):
         # pdb.set_trace()
 
         # points: B * N * (3 or 6)
-        pn_feat = self.extractor(points)    # B * out_channel
+        pn_feat = self.extractor(points, eval)    # B * out_channel
         # print(f"pn_feat has NaNs after self.extractor: {torch.isnan(pn_feat).any()}")
 
         # print('============= print Encoder -> pn_feat =============\n')
@@ -738,10 +740,12 @@ class Uni3DPointcloudEncoder(nn.Module):
     #     except Exception as e:
     #         cprint(f"加载预训练权重时出错: {e}", "red")
 
-    def forward(self, pcd):
+    def forward(self, pcd, eval):
         # 应用点云dropout（数据增强）
         # if self.training:
-        pcd = random_point_dropout(pcd, max_dropout_ratio=0.8)
+        if not eval:
+            # cprint(f"[Uni3DPointcloudEncoder] 随机drop点云, for data augmentation", "yellow")
+            pcd = random_point_dropout(pcd, max_dropout_ratio=0.8)
         
         pts = pcd[..., :3].contiguous()
         colors = pcd[..., 3:].contiguous()
@@ -768,8 +772,10 @@ class Uni3DPointcloudEncoder(nn.Module):
         x = x + pos
         
         # patch dropout
-        x = self.patch_dropout(x)
-        x = self.visual_pos_drop(x)
+        if not eval:
+            # cprint(f"[Uni3DPointcloudEncoder] 启用dropout", "yellow")
+            x = self.patch_dropout(x)
+            x = self.visual_pos_drop(x)
 
         # 通过visual transformer blocks
         for i, blk in enumerate(self.visual_blocks):

@@ -7,13 +7,14 @@
 
 # 默认参数
 task_name="multi_task_robotwin"
-EPOCH=75
+EPOCH=0
 NUM_EPISODES=20
 EVAL_SEED=1
 HEAD_CAMERA_TYPE="D435"
 MAX_STEPS=1000
 TASKS=("block_hammer_beat" "block_handover" "dual_bottles_pick_easy" "bottle_adjust" "dual_bottles_pick_hard")
 # "block_hammer_beat" "block_handover" "dual_bottles_pick_easy" "bottle_adjust" "dual_bottles_pick_hard"
+# 
 
 
 alg_name=${1}

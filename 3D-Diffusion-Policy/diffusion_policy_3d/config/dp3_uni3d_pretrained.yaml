@@ -71,6 +71,11 @@ policy:
     pc_encoder_dim: 512
     use_pretrained_weights: true
     pretrained_weights_path: "Uni3D_tiny/model.pt"  # 预训练权重路径
+  
+data_augmentation:
+  use_augmentation: true      # 控制是否启用数据增强
+  pc_noise_std: 0.002         # 点云噪声的标准差
+  agent_pos_noise_std: 0.0002  # agent_pos 噪声的标准差
 
 ema:
   _target_: diffusion_policy_3d.model.diffusion.ema_model.EMAModel

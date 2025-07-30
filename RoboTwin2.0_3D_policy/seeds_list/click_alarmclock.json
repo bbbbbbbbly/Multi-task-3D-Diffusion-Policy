@@ -1,0 +1,660 @@
+{
+  "20000": {
+    "seeds": [
+      20003,
+      20005,
+      20007,
+      20010,
+      20012,
+      20016,
+      20019,
+      20022,
+      20026,
+      20027,
+      20036,
+      20037,
+      20039,
+      20042,
+      20047,
+      20049,
+      20050,
+      20051,
+      20053,
+      20056,
+      20057,
+      20059,
+      20062,
+      20066,
+      20067,
+      20071,
+      20072,
+      20073,
+      20075,
+      20076,
+      20077,
+      20082,
+      20083,
+      20084,
+      20086,
+      20088,
+      20092,
+      20093,
+      20095,
+      20096,
+      20097,
+      20100,
+      20101,
+      20102,
+      20103,
+      20104,
+      20108,
+      20110,
+      20111,
+      20114,
+      20115,
+      20117
+    ],
+    "episode_info": {
+      "20000": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20001": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20002": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20003": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20004": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20005": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20007": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20008": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20010": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20011": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20012": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20014": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20015": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20016": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20017": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20018": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20019": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20020": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20021": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20022": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20023": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20026": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20027": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20028": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20029": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20030": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20032": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20034": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20035": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20036": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20037": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20038": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20039": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20040": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20041": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20042": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20043": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20044": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20045": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20047": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20048": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20049": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20050": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20051": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20053": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20054": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20055": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20056": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20057": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20058": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20059": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20062": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20063": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20064": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20065": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20066": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20067": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20068": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20069": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20071": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20072": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20073": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20074": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20075": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20076": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20077": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20078": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20079": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20081": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20082": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20083": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20084": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20085": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20086": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20087": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20088": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20089": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20091": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20092": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20093": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20094": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20095": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20096": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20097": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20098": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20099": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20100": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20101": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20102": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20103": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20104": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20105": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20107": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "right"
+        }
+      ],
+      "20108": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20110": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20111": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20112": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "right"
+        }
+      ],
+      "20114": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ],
+      "20115": [
+        {
+          "{A}": "046_alarm-clock/base1",
+          "{a}": "left"
+        }
+      ],
+      "20117": [
+        {
+          "{A}": "046_alarm-clock/base3",
+          "{a}": "left"
+        }
+      ]
+    }
+  }
+}

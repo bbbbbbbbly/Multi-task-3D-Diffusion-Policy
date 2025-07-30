@@ -1,0 +1,30 @@
+models/
+data/*
+__pycache__/
+**/checkpoints/
+result/
+envs/curobo
+*.zip
+viewer_show.*
+weights/
+eval_video/
+
+# eval result
+eval_result/
+data/
+eval_video/
+beat_block_hammer/
+random_action_test/
+
+# Code Generation
+assets/
+
+policy/weights/*
+
+envs/curobo/*
+
+.vscode
+/config.json
+
+/*.json*
+/*.txt

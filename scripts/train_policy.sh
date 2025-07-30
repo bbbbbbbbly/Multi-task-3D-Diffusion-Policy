@@ -5,6 +5,7 @@
 # bash scripts/train_policy.sh dp3 metaworld_basketball 0602 0 0
 # bash scripts/train_policy.sh dp3 robotwin_blocks_stack_hard 9999 0 2
 # bash scripts/train_policy.sh dp3_multi_task multi_task_robotwin 9999 0 2
+# bash scripts/train_policy.sh dp3_multi_task multi_task_robotwin2 9999 0 2
 
 
 
@@ -38,7 +39,6 @@ fi
 
 cd 3D-Diffusion-Policy
 
-export PYTHONPATH=..${PYTHONPATH:+:$PYTHONPATH} # Add project root to PYTHONPATH to find openpoints
 export HYDRA_FULL_ERROR=1
 export TOKENIZERS_PARALLELISM=false
 

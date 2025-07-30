@@ -10,6 +10,7 @@ import pathlib
 import dill
 from collections import deque
 import pdb
+import pickle
 import argparse
 
 # 获取当前脚本的绝对路径
@@ -228,18 +229,28 @@ def run_single_task_evaluation(task_name, epoch, num_episodes, seed=1,
         for step in range(max_steps):
             # Get observation
             observation = env_manager.get_observation()
+
+            
             # print(observation['pointcloud'])
             # pdb.set_trace()
             
-            # 为point cloud添加高斯噪声来缓解关键帧卡顿问题
+            # # 为point cloud添加高斯噪声来缓解关键帧卡顿问题
             # if 'pointcloud' in observation and observation['pointcloud'] is not None:
             #     # 添加小的高斯噪声，标准差0.01，clip范围0.02
             #     observation['pointcloud'] = add_noise(
             #         observation['pointcloud'], 
             #         noise_std=0.002, 
-            #         clip_range=0.02
+            #         clip_range=0.004
             #     )
             #     print(f"Step {step}: 已为point cloud添加高斯噪声")
+            # if 'joint_action' in observation and observation['joint_action'] is not None:
+            #     # 添加小的高斯噪声，标准差0.01，clip范围0.02
+            #     observation['joint_action'] = add_noise(
+            #         observation['joint_action'], 
+            #         noise_std=0.0002, 
+            #         clip_range=0.0004
+            #     )
+            #     print(f"Step {step}: 已为robot state添加高斯噪声")
 
             # Calculate action based on observation
             if dp3_policy is not None:
@@ -277,8 +288,27 @@ def run_single_task_evaluation(task_name, epoch, num_episodes, seed=1,
 
             # if action is not None:
             #     # 添加小的高斯噪声，标准差0.01，clip范围0.02
-            #     action = add_noise(action, 0.0008, 0.02)
+            #     action = add_noise(action, 0.0006, 0.0012)
             #     print(f"Step {step}: 已为action添加高斯噪声")
+
+            # # 如果 project_root_dir 不在全局范围，可以指定一个已知位置，例如当前工作目录
+            # actions_base_dir = os.path.join(os.getcwd(), "debug_actions") # 示例：放在当前工作目录的 debug_actions 文件夹
+            # os.makedirs(actions_base_dir, exist_ok=True) # 确保基础目录存在
+
+            # # 为当前回合创建独特的子目录
+            # current_episode_actions_dir = os.path.join(actions_base_dir, f"{seed}_actions")
+            # os.makedirs(current_episode_actions_dir, exist_ok=True)
+            # print(f"本回合的动作数据将保存到: {current_episode_actions_dir}")
+
+            # # --- 新增代码：在每一步循环内保存动作 ---
+            # action_filename = os.path.join(current_episode_actions_dir, f"action_step_{step:04d}.pkl")
+            # try:
+            #     with open(action_filename, 'wb') as f: # 'wb' 模式用于写入二进制文件
+            #         pickle.dump(action, f)
+            #     print(f"动作 {step} 保存成功到: {action_filename}") # 可选：打印确认信息
+            # except Exception as e:
+            #     print(f"警告: 动作保存失败 {action_filename}: {e}")
+            # ----------------------------------------
             
             status = env_manager.Take_action(action)
             print(f"Step {step}: status = {status}")

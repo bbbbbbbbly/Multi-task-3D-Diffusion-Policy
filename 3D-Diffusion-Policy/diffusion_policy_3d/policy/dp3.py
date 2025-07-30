@@ -253,7 +253,7 @@ class DP3(BasePolicy):
                 repeated_instructions = np.repeat(language_instructions_for_encoder, To).tolist()
                 this_nobs['language'] = repeated_instructions
 
-            nobs_features = self.obs_encoder(this_nobs)
+            nobs_features = self.obs_encoder(this_nobs, eval=True)
 
             # print(f"--- DEBUG INFO (After Encoder) ---")
             # print(f"Shape of nobs_features: {nobs_features.shape}")
@@ -283,7 +283,7 @@ class DP3(BasePolicy):
                 repeated_instructions = np.repeat(language_instructions_for_encoder, To).tolist()
                 this_nobs['language'] = repeated_instructions
 
-            nobs_features = self.obs_encoder(this_nobs)
+            nobs_features = self.obs_encoder(this_nobs, eval=True)
             # reshape back to B, T, Do
             nobs_features = nobs_features.reshape(B, To, -1)
             cond_data = torch.zeros(size=(B, T, Da+Do), device=device, dtype=dtype)
