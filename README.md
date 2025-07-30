@@ -268,8 +268,6 @@ bash script/_download_assets.sh
 
 ## Collect data
 
----
-
 1. Generate Robotwin 1.0 training data for DP3
      * Please follow the Robotwin 1.0 guidance to generate Robotwin 1.0 data for DP3, the data format should be '.zarr'.
      * Then put the 17-task data in `3D-Diffusion-Policy/data/multi-task-data` for multi-task training and put the data in `3D-Diffusion-Policy/data/robotwin` for single task training.
@@ -281,6 +279,8 @@ bash script/_download_assets.sh
      * Then put the data in `3D-Diffusion-Policy/data/robotwin2`.
 
 ---
+
+## Guide
 
 3. Training examples
 ```bash
