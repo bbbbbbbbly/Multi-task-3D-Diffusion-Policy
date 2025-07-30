@@ -28,6 +28,9 @@ class MultiTaskRobotwinDataset(BaseDataset):
                  # Multi-task specific parameters
                  data_root=None,
                  multi_task_config=None,
+                 use_data_augmentation=False,
+                 pc_noise_std=0.002,
+                 agent_pos_noise_std=0.0002,
                  task_name=None):
         
         super().__init__()

@@ -78,6 +78,11 @@ policy:
     use_pretrained_weights: false  # 从头训练
     pretrained_weights_path: null
 
+data_augmentation:
+  use_augmentation: true      # 控制是否启用数据增强
+  pc_noise_std: 0.005         # 点云噪声的标准差
+  agent_pos_noise_std: 0.001  # agent_pos 噪声的标准差
+
 ema:
   _target_: diffusion_policy_3d.model.diffusion.ema_model.EMAModel
   update_after_step: 0
@@ -129,7 +134,7 @@ logging:
   group: ${exp_name}
   id: null
   mode: online
-  name: ${training.seed}
+  name: ${task.name}
   project: dp3_uni3d_scratch_multi_task
   resume: true
   tags:

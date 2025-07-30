@@ -118,7 +118,7 @@ training:
   use_ema: True
   rollout_every: 200
   checkpoint_every: 50
-  val_every: 1
+  val_every: 50
   sample_every: 5
   max_train_steps: null
   max_val_steps: null

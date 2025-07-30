@@ -1,7 +1,6 @@
 # Examples:
 # bash scripts/train_robotwin2_single.sh dp3_robotwin2 beat_block_hammer 9999 0 2
-
-
+# bash scripts/train_robotwin2_single.sh dp3_uni3d_pretrained_robotwin2 beat_block_hammer 9999 0 2
 
 DEBUG=False
 save_ckpt=True

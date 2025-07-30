@@ -11,6 +11,33 @@ from diffusion_policy_3d.common.sampler import (
     SequenceSampler, get_val_mask, downsample_mask)
 from diffusion_policy_3d.model.common.normalizer import LinearNormalizer
 from diffusion_policy_3d.dataset.base_dataset import BaseDataset
+from termcolor import cprint
+
+def add_noise(data, noise_std=0.01, clip_range=0.02):
+    """
+    为输入添加经过clip的高斯噪声
+    
+    Args:
+        point_cloud: 输入的点云数据 (numpy array)
+        noise_std: 高斯噪声的标准差，默认0.01
+        clip_range: 噪声的clip范围，默认0.02 (即噪声被限制在[-0.02, 0.02]范围内)
+    
+    Returns:
+        添加噪声后的点云数据
+    """
+    if data is None:
+        return None
+    
+    # 生成与点云同样形状的高斯噪声
+    noise = np.random.normal(0, noise_std, data.shape)
+    
+    # 对噪声进行clip，避免噪声过大
+    noise = np.clip(noise, -clip_range, clip_range)
+    
+    # 将噪声添加到点云上
+    noisy_data = data + noise
+    
+    return noisy_data
 
 
 class MultiTaskRobotwin2Dataset(BaseDataset):
@@ -29,9 +56,23 @@ class MultiTaskRobotwin2Dataset(BaseDataset):
                  # Multi-task specific parameters
                  data_root=None,
                  multi_task_config=None,
+                 use_data_augmentation=False,
+                 pc_noise_std=0.002,
+                 agent_pos_noise_std=0.0002,
                  task_name=None):
         
         super().__init__()
+        self.use_data_augmentation=use_data_augmentation
+        self.pc_noise_std=pc_noise_std
+        self.agent_pos_noise_std=agent_pos_noise_std
+        if use_data_augmentation:
+            cprint("--------------------------", "green")
+            cprint(f"使用噪声data augmentation: pc_noise_std={pc_noise_std}, agent_pos_noise_std={agent_pos_noise_std}", "green")
+            cprint("--------------------------", "green")
+        else:
+            cprint("--------------------------", "red")
+            cprint("数据读入时未使用加噪声的data augmentation", "red")
+            cprint("--------------------------", "red")
         
         self.horizon = horizon
         self.pad_before = pad_before
@@ -256,6 +297,23 @@ class MultiTaskRobotwin2Dataset(BaseDataset):
         sample['language'] = language_instruction
 
         data = self._sample_to_data(sample)
+
+        if self.use_data_augmentation:
+            if 'point_cloud' in data['obs']:
+                # 添加小的高斯噪声，标准差0.01，clip范围0.02
+                data['obs']['point_cloud'] = add_noise(
+                    data['obs']['point_cloud'], 
+                    noise_std=self.pc_noise_std, 
+                    clip_range=2*self.pc_noise_std
+                )
+            if 'agent_pos' in data['obs']:
+                # 添加小的高斯噪声，标准差0.01，clip范围0.02
+                data['obs']['agent_pos'] = add_noise(
+                    data['obs']['agent_pos'], 
+                    noise_std=self.agent_pos_noise_std, 
+                    clip_range=2*self.agent_pos_noise_std
+                )
+
         
         # Convert to torch tensors
         torch_data = dict_apply(data, torch.from_numpy)

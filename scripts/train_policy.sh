@@ -6,6 +6,7 @@
 # bash scripts/train_policy.sh dp3 robotwin_blocks_stack_hard 9999 0 2
 # bash scripts/train_policy.sh dp3_multi_task multi_task_robotwin 9999 0 2
 # bash scripts/train_policy.sh dp3_multi_task multi_task_robotwin2 9999 0 2
+# bash scripts/train_policy.sh dp3_uni3d_pretrained_multi_task multi_task_robotwin2 9999 0 2
 
 
 
