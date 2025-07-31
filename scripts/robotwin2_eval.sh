@@ -6,7 +6,7 @@
 
 # 默认参数
 task_name="beat_block_hammer"
-EPOCH=100
+EPOCH=200
 NUM_EPISODES=20
 EVAL_SEED=1
 HEAD_CAMERA_TYPE="D435"
