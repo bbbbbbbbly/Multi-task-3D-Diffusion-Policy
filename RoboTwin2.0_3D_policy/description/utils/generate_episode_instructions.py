@@ -197,9 +197,14 @@ def generate_episode_descriptions(task_name: str, episodes: List[Dict[str, str]]
     Now also generates unseen descriptions.
     """
     # Load task instructions
+
+
+    
     task_data = load_task_instructions(task_name)
     seen_instructions = task_data.get("seen", [])
     unseen_instructions = task_data.get("unseen", [])
+
+
 
     # Store generated descriptions for each episode
     all_generated_descriptions = []

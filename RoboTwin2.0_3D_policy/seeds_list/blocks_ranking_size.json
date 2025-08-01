@@ -1,0 +1,228 @@
+{
+  "20000": {
+    "seeds": [
+      20000,
+      20001,
+      20002,
+      20003,
+      20004,
+      20005,
+      20006,
+      20007,
+      20008,
+      20009,
+      20010,
+      20011,
+      20013,
+      20014,
+      20015,
+      20016,
+      20018,
+      20019,
+      20020,
+      20021
+    ],
+    "episode_info": {
+      "20000": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "left"
+        }
+      ],
+      "20001": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "left",
+          "{c}": "right"
+        }
+      ],
+      "20002": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "left",
+          "{c}": "left"
+        }
+      ],
+      "20003": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "left",
+          "{c}": "right"
+        }
+      ],
+      "20004": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "right"
+        }
+      ],
+      "20005": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "left"
+        }
+      ],
+      "20006": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "left",
+          "{c}": "left"
+        }
+      ],
+      "20007": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "right"
+        }
+      ],
+      "20008": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "right",
+          "{c}": "left"
+        }
+      ],
+      "20009": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "left",
+          "{c}": "left"
+        }
+      ],
+      "20010": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "right"
+        }
+      ],
+      "20011": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "left",
+          "{c}": "right"
+        }
+      ],
+      "20013": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "right"
+        }
+      ],
+      "20014": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "left",
+          "{c}": "left"
+        }
+      ],
+      "20015": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "right",
+          "{c}": "left"
+        }
+      ],
+      "20016": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "right",
+          "{c}": "left"
+        }
+      ],
+      "20018": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "right"
+        }
+      ],
+      "20019": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "right",
+          "{b}": "left",
+          "{c}": "left"
+        }
+      ],
+      "20020": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "left"
+        }
+      ],
+      "20021": [
+        {
+          "{A}": "large block",
+          "{B}": "medium block",
+          "{C}": "small block",
+          "{a}": "left",
+          "{b}": "right",
+          "{c}": "right"
+        }
+      ]
+    }
+  }
+}

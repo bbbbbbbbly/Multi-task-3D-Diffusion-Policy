@@ -72,3 +72,7 @@ assets/
 debug_actions/
 RoboTwin2.0_3D_policy/assets/
 RoboTwin2.0_3D_policy/eval_video/
+
+# 8.1 Update
+Dockerfile
+dp3_training_environment.yml
