@@ -68,13 +68,13 @@ RoboTwin1.0_3d_policy/eval_video/
 .cache/
 
 # 7.30 Update
-assets/
+/assets/
 debug_actions/
-RoboTwin2.0_3D_policy/assets/*
+# RoboTwin2.0_3D_policy/assets/
 RoboTwin2.0_3D_policy/eval_video/
 
 # 8.1 Update
 Dockerfile
 dp3_training_environment.yml
-!assets/_download.py
-!assets/files/
+# !/RoboTwin2.0_3D_policy/assets/_download.py
+# !/RoboTwin2.0_3D_policy/assets/files/
