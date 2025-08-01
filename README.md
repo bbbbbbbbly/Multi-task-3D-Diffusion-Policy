@@ -16,8 +16,8 @@
 
 ```bash
 conda deactivate
-conda create -n dp3 python=3.8
-conda activate dp3
+conda create -n dp3_training python=3.8
+conda activate dp3_training
 ```
 
 ---
