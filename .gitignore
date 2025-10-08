@@ -97,3 +97,4 @@ scripts/batch_robotwin2_eval_4.sh
 3D-Diffusion-Policy/diffusion_policy_3d/model/vision/pointnet_extractor_original.py
 RoboTwin_3dpolicy_new/
 .vscode/
+RoboTwin1.0_3d_policy/
