@@ -12,6 +12,7 @@ from collections import deque
 import pdb
 import pickle
 import argparse
+import wandb
 
 # 获取当前脚本的绝对路径
 current_script_path = os.path.abspath(__file__)
@@ -74,22 +75,22 @@ def create_image_dir(task_name, seed, epoch=None):
     os.makedirs(image_dir, exist_ok=True)
     return image_dir
 
-# Save image function
-def save_image(image_array, save_dir, step, camera_name="front_camera"):
-    """Save numpy format image to file"""
-    # Ensure correct image format (RGB format numpy array)
-    if image_array.dtype != np.uint8:
-        # If float type and range is [0,1], convert to [0,255]
-        if image_array.max() <= 1.0:
-            image_array = (image_array * 255).astype(np.uint8)
-        else:
-            image_array = image_array.astype(np.uint8)
-
-    # Save using OpenCV (need to convert RGB to BGR)
-    image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
-    image_path = os.path.join(save_dir, f"{camera_name}_step_{step:04d}.png")
-    cv2.imwrite(image_path, image_bgr)
-    return image_path
+# Save image function (未使用，已注释)
+# def save_image(image_array, save_dir, step, camera_name="front_camera"):
+#     """Save numpy format image to file"""
+#     # Ensure correct image format (RGB format numpy array)
+#     if image_array.dtype != np.uint8:
+#         # If float type and range is [0,1], convert to [0,255]
+#         if image_array.max() <= 1.0:
+#             image_array = (image_array * 255).astype(np.uint8)
+#         else:
+#             image_array = image_array.astype(np.uint8)
+#
+#     # Save using OpenCV (need to convert RGB to BGR)
+#     image_bgr = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+#     image_path = os.path.join(save_dir, f"{camera_name}_step_{step:04d}.png")
+#     cv2.imwrite(image_path, image_bgr)
+#     return image_path
 
 def parse_arguments():
     """解析命令行参数"""
@@ -114,6 +115,19 @@ def parse_arguments():
                         help='任务配置 (默认: demo_clean)')
     parser.add_argument('--instruction_type', type=str, default='unseen',
                         help='指令类型 (默认: unseen)')
+    # 新增参数
+    parser.add_argument('--action_space', type=str, default='joint', choices=['joint', 'ee'],
+                        help='动作空间类型: joint (关节空间) 或 ee (末端执行器空间) (默认: joint)')
+    parser.add_argument('--start_epoch', type=int, default=None,
+                        help='批量评估的起始epoch (默认: None, 使用单个epoch)')
+    parser.add_argument('--end_epoch', type=int, default=None,
+                        help='批量评估的结束epoch (默认: None, 使用单个epoch)')
+    parser.add_argument('--epoch_interval', type=int, default=50,
+                        help='批量评估时epoch的间隔 (默认: 50)')
+    parser.add_argument('--wandb_mode', type=str, default='online', choices=['online', 'offline', 'disabled'],
+                        help='wandb模式: online, offline 或 disabled (默认: online)')
+    parser.add_argument('--wandb_project', type=str, default='RoboTwin2.0-Evaluation',
+                        help='wandb项目名称 (默认: RoboTwin2.0-Evaluation)')
     return parser.parse_args()
 
 def add_noise(data, noise_std=0.01, clip_range=0.02):
@@ -144,8 +158,12 @@ def add_noise(data, noise_std=0.01, clip_range=0.02):
 
 def run_single_task_evaluation(task_name, epoch, num_episodes, seed=1,
                               head_camera_type="D435", max_steps=1000, run_dir='robotwin2_beat_block_hammer-dp3_robotwin2-9999_seed0',
-                              policy='dp3_robotwin2', task_config='demo_clean', instruction_type='unseen'):
-    """运行单任务评估"""
+                              policy='dp3_robotwin2', task_config='demo_clean', instruction_type='unseen', action_space='joint'):
+    """运行单任务评估
+    
+    Args:
+        action_space: 'joint' 表示关节空间，'ee' 表示末端执行器空间
+    """
 
     # 1. Create environment manager instance
     env_manager = Env()
@@ -185,10 +203,29 @@ def run_single_task_evaluation(task_name, epoch, num_episodes, seed=1,
         # Run task loop
         obs_history = deque(maxlen=n_obs_steps)  # 保存最近2个时间步的观测
         observation = env_manager.get_observation()
+        
+        # 根据action_space决定使用joint state还是ee state
+        if action_space == 'ee':
+            # 使用end effector pose
+            left_endpose = observation['endpose']['left_endpose']
+            right_endpose = observation['endpose']['right_endpose']
+            left_gripper = observation['endpose']['left_gripper']
+            right_gripper = observation['endpose']['right_gripper']
+            # 拼接成agent_pos: [left_ee(7), left_gripper(1), right_ee(7), right_gripper(1)]
+            agent_pos_vector = np.concatenate([
+                left_endpose,  # [x, y, z, qx, qy, qz, qw]
+                [left_gripper],
+                right_endpose,
+                [right_gripper]
+            ])
+        else:
+            # 使用joint state
+            agent_pos_vector = observation['joint_action']['vector']
+        
         # 将当前观测添加到历史中
         current_obs = {
             'point_cloud': torch.from_numpy(observation['pointcloud']),
-            'agent_pos': torch.from_numpy(observation['joint_action']['vector'])
+            'agent_pos': torch.from_numpy(agent_pos_vector)
         }
         obs_history.append(current_obs)
 
@@ -257,8 +294,10 @@ def run_single_task_evaluation(task_name, epoch, num_episodes, seed=1,
             #     print(f"警告: 动作保存失败 {action_filename}: {e}")
             # # -----------------------------------
 
-            status, obs_history = env_manager.Take_action(action, obs_history)
-            print(f"Step {step}: status = {status}")
+            # 根据action_space设置action_types
+            action_type = 'ee' if action_space == 'ee' else 'qpos'
+            status, obs_history = env_manager.Take_action(action, obs_history, n_obs_steps, action_types=action_type, use_ee_space=(action_space == 'ee'))
+            # print(f"Step {step}: status = {status}")
 
             if status == "success":
                 success_total += 1
@@ -286,25 +325,181 @@ def run_single_task_evaluation(task_name, epoch, num_episodes, seed=1,
 
     return success_total, len(seed_list)
 
+def run_batch_evaluation(task_name, start_epoch, end_epoch, epoch_interval, num_episodes, 
+                        seed=1, head_camera_type="D435", max_steps=1000, run_dir_template='robotwin2_beat_block_hammer-dp3_robotwin2-9999_seed0',
+                        policy='dp3_robotwin2', task_config='demo_clean', instruction_type='unseen', 
+                        action_space='joint', wandb_mode='online', wandb_project='RoboTwin2.0-Evaluation'):
+    """批量评估多个epoch的模型
+    
+    Args:
+        start_epoch: 起始epoch
+        end_epoch: 结束epoch
+        epoch_interval: epoch间隔
+        wandb_mode: wandb模式 ('online', 'offline', 'disabled')
+    """
+    
+    # 初始化wandb
+    use_wandb = (wandb_mode != 'disabled')
+    if use_wandb:
+        # 创建wandb日志目录
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        wandb_dir = os.path.join(project_root_dir, 'wandb_logs', 
+                                f'epoch{start_epoch}-{end_epoch}_{timestamp}-{run_dir_template}')
+        os.makedirs(wandb_dir, exist_ok=True)
+        
+        # 初始化wandb
+        wandb.init(
+            project=wandb_project,
+            name=f'{run_dir_template}_epoch{start_epoch}-{end_epoch}',
+            config={
+                'task_name': task_name,
+                'start_epoch': start_epoch,
+                'end_epoch': end_epoch,
+                'epoch_interval': epoch_interval,
+                'num_episodes': num_episodes,
+                'policy': policy,
+                'task_config': task_config,
+                'instruction_type': instruction_type,
+                'action_space': action_space,
+                'max_steps': max_steps,
+            },
+            dir=wandb_dir,
+            mode=wandb_mode
+        )
+        print(f"✓ Wandb初始化成功，日志保存在: {wandb_dir}")
+        print(f"  模式: {wandb_mode}")
+        print(f"  项目: {wandb_project}")
+    
+    # 批量评估
+    results = []
+    epochs_to_eval = range(start_epoch, end_epoch + 1, epoch_interval)
+    
+    print("\n" + "="*50)
+    print(f"开始批量评估: Epoch {start_epoch} 到 {end_epoch}, 间隔 {epoch_interval}")
+    print(f"总共需要评估 {len(list(epochs_to_eval))} 个checkpoint")
+    print("="*50 + "\n")
+    
+    for epoch in epochs_to_eval:
+        print(f"\n{'='*50}")
+        print(f"评估 Epoch {epoch}/{end_epoch}")
+        print(f"{'='*50}\n")
+        
+        # try:
+        success_count, total_count = run_single_task_evaluation(
+            task_name=task_name,
+            epoch=epoch,
+            num_episodes=num_episodes,
+            seed=seed,
+            head_camera_type=head_camera_type,
+            max_steps=max_steps,
+            run_dir=run_dir_template,
+            policy=policy,
+            task_config=task_config,
+            instruction_type=instruction_type,
+            action_space=action_space
+        )
+        
+        success_rate = success_count / total_count if total_count > 0 else 0
+        results.append({
+            'epoch': epoch,
+            'success_count': success_count,
+            'total_count': total_count,
+            'success_rate': success_rate
+        })
+        
+        # 记录到wandb
+        if use_wandb:
+            wandb.log({
+                'epoch': epoch,
+                'success_rate': success_rate,
+                'success_count': success_count,
+                'total_count': total_count
+            })
+        
+        print(f"\n✓ Epoch {epoch} 评估完成: {success_count}/{total_count} = {success_rate:.2%}")
+        
+        # except Exception as e:
+        #     print(f"\n✗ Epoch {epoch} 评估失败: {e}")
+        #     import traceback
+        #     traceback.print_exc()
+        #     continue
+    
+    # 打印总结
+    print("\n" + "="*50)
+    print("批量评估完成！")
+    print("="*50)
+    print(f"\n{'Epoch':<10} {'Success/Total':<15} {'Success Rate':<15}")
+    print("-" * 40)
+    for result in results:
+        print(f"{result['epoch']:<10} {result['success_count']}/{result['total_count']:<13} {result['success_rate']:.2%}")
+    
+    # 保存结果到文件
+    results_file = os.path.join(project_root_dir, 'evaluation_results', 
+                                f'{run_dir_template}_epoch{start_epoch}-{end_epoch}_{timestamp}.txt')
+    os.makedirs(os.path.dirname(results_file), exist_ok=True)
+    with open(results_file, 'w') as f:
+        f.write(f"Task: {task_name}\n")
+        f.write(f"Policy: {policy}\n")
+        f.write(f"Action Space: {action_space}\n")
+        f.write(f"Epoch Range: {start_epoch} - {end_epoch} (interval: {epoch_interval})\n")
+        f.write(f"Episodes per epoch: {num_episodes}\n")
+        f.write("\n" + "="*50 + "\n")
+        f.write(f"{'Epoch':<10} {'Success/Total':<15} {'Success Rate':<15}\n")
+        f.write("-" * 40 + "\n")
+        for result in results:
+            f.write(f"{result['epoch']:<10} {result['success_count']}/{result['total_count']:<13} {result['success_rate']:.2%}\n")
+    print(f"\n✓ 结果已保存到: {results_file}")
+    
+    if use_wandb:
+        wandb.finish()
+        print(f"✓ Wandb运行已结束")
+    
+    return results
+
 # 主程序入口
 if __name__ == "__main__":
     args = parse_arguments()
 
     print("开始RoboTwin2.0单任务DP3评估")
     print(f"Policy: {args.alg_name}")
+    print(f"Action Space: {args.action_space}")
+    
+    # 判断是批量评估还是单个评估
+    if args.start_epoch is not None and args.end_epoch is not None:
+        # 批量评估多个epoch
+        print(f"\n批量评估模式: Epoch {args.start_epoch} 到 {args.end_epoch}, 间隔 {args.epoch_interval}")
+        run_batch_evaluation(
+            task_name=args.task_name,
+            start_epoch=args.start_epoch,
+            end_epoch=args.end_epoch,
+            epoch_interval=args.epoch_interval,
+            num_episodes=args.num_episodes,
+            seed=args.seed,
+            head_camera_type=args.head_camera_type,
+            max_steps=args.max_steps,
+            run_dir_template=args.run_dir,
+            policy=args.alg_name,
+            task_config=args.task_config,
+            instruction_type=args.instruction_type,
+            action_space=args.action_space,
+            wandb_mode=args.wandb_mode,
+            wandb_project=args.wandb_project
+        )
+    else:
+        # 单个epoch评估
+        print(f"\n单个评估模式: Epoch {args.epoch}")
+        success_count, total_count = run_single_task_evaluation(
+            task_name=args.task_name,
+            epoch=args.epoch,
+            num_episodes=args.num_episodes,
+            seed=args.seed,
+            head_camera_type=args.head_camera_type,
+            max_steps=args.max_steps,
+            run_dir=args.run_dir,
+            policy=args.alg_name,
+            task_config=args.task_config,
+            instruction_type=args.instruction_type,
+            action_space=args.action_space
+        )
 
-    # 运行单任务评估
-    success_count, total_count = run_single_task_evaluation(
-        task_name=args.task_name,
-        epoch=args.epoch,
-        num_episodes=args.num_episodes,
-        seed=args.seed,
-        head_camera_type=args.head_camera_type,
-        max_steps=args.max_steps,
-        run_dir=args.run_dir,
-        policy=args.alg_name,
-        task_config=args.task_config,
-        instruction_type=args.instruction_type
-    )
-
-    print(f"\n{args.epoch}-{args.task_name}最终结果: {success_count}/{total_count} = {success_count/total_count:.2%}")
+        print(f"\n{args.epoch}-{args.task_name}最终结果: {success_count}/{total_count} = {success_count/total_count:.2%}")

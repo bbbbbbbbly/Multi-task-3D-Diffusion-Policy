@@ -7,14 +7,14 @@
 
 # 默认参数
 task_name="multi_task_robotwin2"
-EPOCH=100
+EPOCH=1200
 NUM_EPISODES=20
 EVAL_SEED=1
 HEAD_CAMERA_TYPE="D435"
 MAX_STEPS=1000
 TASK_CONFIG="demo_clean"
 INSTRUCTION_TYPE="unseen"
-TASKS=("open_laptop")
+TASKS=("stamp_seal" "place_fan" "place_shoe" "rotate_qrcode" "move_pillbottle_pad")
 
 alg_name=${1}
 task_name=${2}

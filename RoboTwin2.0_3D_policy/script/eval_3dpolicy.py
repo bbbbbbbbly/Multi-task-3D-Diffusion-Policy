@@ -166,7 +166,7 @@ class Env:
             '-f', 'rawvideo',
             '-pixel_format', 'rgb24',
             '-video_size', self.video_size,
-            '-framerate', '30',
+            '-framerate', '4',
             '-i', '-',
             '-pix_fmt', 'yuv420p',
             '-vcodec', 'libx264',
@@ -331,6 +331,8 @@ class Env:
                     print('error occurs !')
                     continue
             if (not expert_check) or (self.task.plan_success and self.task.check_success()):
+
+
                 suc_seed_list.append(now_seed)
                 now_id_list.append(now_id)
                 now_id += 1
@@ -350,23 +352,72 @@ class Env:
             self.env_state=2
         if self.task.eval_success:
             self.env_state=1
-    def Take_action(self,actions,obs_history,action_types='qpos'):
+    def Take_action(self,actions,obs_history,n_obs_steps,action_types='qpos',use_ee_space=False): # action_types='ee'
         # actions=[]
         # actions.append(action)
         # actions=np.array(actions)
         # self.task.apply_action(actions)
         # actions=action
-        for action in actions:
-            self.task.take_action(action,action_type=action_types)
+
+        # import pdb
+        # pdb.set_trace()
+
+        first_stage = len(actions) - (n_obs_steps - 1)
+        first_actions = actions[:first_stage]
+        second_actions = actions[first_stage:]
+        self.task.take_action(first_actions, action_type=action_types)
+        observation = self.get_observation()
+        
+        # 根据use_ee_space决定使用joint state还是ee state
+        if use_ee_space:
+            # 使用end effector pose
+            left_endpose = observation['endpose']['left_endpose']
+            right_endpose = observation['endpose']['right_endpose']
+            left_gripper = observation['endpose']['left_gripper']
+            right_gripper = observation['endpose']['right_gripper']
+            agent_pos_vector = np.concatenate([
+                left_endpose,
+                [left_gripper],
+                right_endpose,
+                [right_gripper]
+            ])
+        else:
+            # 使用joint state
+            agent_pos_vector = observation['joint_action']['vector']
+            
+        current_obs = {
+        'point_cloud': torch.from_numpy(observation['pointcloud']),
+        'agent_pos': torch.from_numpy(agent_pos_vector)
+        }
+        obs_history.append(current_obs)
+
+        for action in second_actions:
+            self.task.take_action(np.array([action]),action_type=action_types)
             observation = self.get_observation()
-            self.ffmpeg.stdin.write(observation['observation']['head_camera']['rgb'].tobytes())
+            
+            # 根据use_ee_space决定使用joint state还是ee state
+            if use_ee_space:
+                left_endpose = observation['endpose']['left_endpose']
+                right_endpose = observation['endpose']['right_endpose']
+                left_gripper = observation['endpose']['left_gripper']
+                right_gripper = observation['endpose']['right_gripper']
+                agent_pos_vector = np.concatenate([
+                    left_endpose,
+                    [left_gripper],
+                    right_endpose,
+                    [right_gripper]
+                ])
+            else:
+                agent_pos_vector = observation['joint_action']['vector']
+            
             # update observation to ensure obs_history is in continual steps
             current_obs = {
             'point_cloud': torch.from_numpy(observation['pointcloud']),
-            'agent_pos': torch.from_numpy(observation['joint_action']['vector'])
+            'agent_pos': torch.from_numpy(agent_pos_vector)
             }
             obs_history.append(current_obs)
             
+        self.ffmpeg.stdin.write(observation['observation']['head_camera']['rgb'].tobytes())
         self.step+=actions.shape[0]
         self.Detect_env_state()
         if self.env_state==1:

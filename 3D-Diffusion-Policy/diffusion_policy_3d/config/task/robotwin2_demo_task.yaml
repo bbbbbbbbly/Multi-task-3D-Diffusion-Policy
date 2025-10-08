@@ -7,10 +7,10 @@ shape_meta: &shape_meta
       shape: [1024, 6]
       type: point_cloud
     agent_pos:
-      shape: [14]
+      shape: [14] # when you modify use_endpose, remember modify here
       type: low_dim
-  action:
-    shape: [14]
+  action: 
+    shape: [14] # also here
 
 env_runner:
   _target_: diffusion_policy_3d.env_runner.robot_runner.RobotRunner
@@ -21,7 +21,7 @@ env_runner:
 
 dataset:
   _target_: diffusion_policy_3d.dataset.robotwin_dataset.RobotwinDataset
-  zarr_path: data/robotwin2/${task.name}.zarr
+  zarr_path: data/robotwin2/${task.name}-100.zarr
   horizon: ${horizon}
   pad_before: ${eval:'${n_obs_steps}-1'}
   pad_after: ${eval:'${n_action_steps}-1'}
@@ -31,3 +31,4 @@ dataset:
   use_data_augmentation: ${data_augmentation.use_augmentation}
   pc_noise_std: ${data_augmentation.pc_noise_std}
   agent_pos_noise_std: ${data_augmentation.agent_pos_noise_std}
+  use_endpose: false

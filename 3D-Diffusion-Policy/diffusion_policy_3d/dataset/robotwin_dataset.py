@@ -52,8 +52,24 @@ class RobotwinDataset(BaseDataset):
             pc_noise_std=0.002,
             agent_pos_noise_std=0.0002,
             task_name=None,
+            use_endpose=False,  # 新增：是否使用 endpose 数据
             ):
         super().__init__()
+        
+        # 根据 use_endpose 修改 zarr_path
+        if use_endpose:
+            # 将 data/robotwin2/{task}-demo_clean.zarr 
+            # 转换为 data/robotwin2_endpose/{task}-demo_clean-100_endpose.zarr
+            zarr_path = zarr_path.replace('data/robotwin2/', 'data/robotwin2_endpose/')
+            zarr_path = zarr_path.replace('.zarr', '_endpose.zarr')
+            cprint("--------------------------", "cyan")
+            cprint(f"使用 Endpose 数据: {zarr_path}", "cyan")
+            cprint("--------------------------", "cyan")
+        else:
+            cprint("--------------------------", "yellow")
+            cprint(f"使用 Joint Space 数据: {zarr_path}", "yellow")
+            cprint("--------------------------", "yellow")
+        
         self.use_data_augmentation=use_data_augmentation
         self.pc_noise_std=pc_noise_std
         self.agent_pos_noise_std=agent_pos_noise_std
@@ -129,6 +145,9 @@ class RobotwinDataset(BaseDataset):
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         sample = self.sampler.sample_sequence(idx)
         data = self._sample_to_data(sample)
+
+        # import pdb
+        # pdb.set_trace()
 
         if self.use_data_augmentation:
             if 'point_cloud' in data['obs']:

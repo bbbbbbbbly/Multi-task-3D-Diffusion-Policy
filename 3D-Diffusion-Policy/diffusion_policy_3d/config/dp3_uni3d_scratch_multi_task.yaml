@@ -61,13 +61,27 @@ policy:
   # Multi-task configuration
   multi_task_config:
     enabled: true
-    language_encoder: "sentence-transformers/all-MiniLM-L6-v2"
-    language_mlp_dim: 64
+    language_encoder_type: "clip"  # Options: "sentence_transformers", "clip"
+    language_encoder: "sentence-transformers/all-MiniLM-L6-v2"  # sentence-transformers/all-MiniLM-L6-v2 or EVA02-E-14-plus
+    clip_model: "EVA02-E-14-plus"  # CLIP model name when using CLIP encoder
+    clip_pretrained: "/data/sea_disk0/wushr/3D-Policy/DP3Encoder-to-Uni3D/3D-Diffusion-Policy/clip_model/open_clip_pytorch_model.bin"  # CLIP pretrained weights
+    language_mlp_dim: 1024 # for sentence_transformers, should be 64
+
+    # Example configurations for different encoders:
+    # For SentenceTransformers (default):
+    # language_encoder_type: "sentence_transformers"
+    # language_encoder: "sentence-transformers/all-MiniLM-L6-v2"  # 384-dim output
+    # language_encoder: "sentence-transformers/all-mpnet-base-v2"  # 768-dim output
+
+    # For CLIP:
+    # language_encoder_type: "clip"
+    # clip_model: "EVA02-E-14-plus"
+    # clip_pretrained: "laion2b_s9b_b144k"
 
   # Uni3D编码器配置
   pointcloud_encoder_cfg:
-    pc_model: "eva02_tiny_patch14_224"
-    pc_feat_dim: 192
+    pc_model: "eva02_large_patch14_448"
+    pc_feat_dim: 1024
     embed_dim: 1024
     group_size: 32
     num_group: 512
@@ -77,9 +91,10 @@ policy:
     pc_encoder_dim: 512
     use_pretrained_weights: false  # 从头训练
     pretrained_weights_path: null
+    normalization_type: "layer_norm"  # Options: "batch_norm", "layer_norm", "none"
 
 data_augmentation:
-  use_augmentation: true      # 控制是否启用数据增强
+  use_augmentation: false      # 控制是否启用数据增强
   pc_noise_std: 0.005         # 点云噪声的标准差
   agent_pos_noise_std: 0.001  # agent_pos 噪声的标准差
 
@@ -92,14 +107,14 @@ ema:
   max_value: 0.9999
 
 dataloader:
-  batch_size: 64  # 进一步减少批次大小以适应Uni3D + 语言编码器
+  batch_size: 96  # comparison with FP3
   num_workers: 8
   shuffle: True
   pin_memory: True
   persistent_workers: False
 
 val_dataloader:
-  batch_size: 64  # 进一步减少批次大小以适应Uni3D + 语言编码器
+  batch_size: 96  # 进一步减少批次大小以适应Uni3D + 语言编码器
   num_workers: 8
   shuffle: False
   pin_memory: True
@@ -120,7 +135,7 @@ training:
   lr_scheduler: cosine
   lr_warmup_steps: 500
   num_epochs: 3001
-  gradient_accumulate_every: 4
+  gradient_accumulate_every: 1
   use_ema: True
   rollout_every: 200
   checkpoint_every: 25
@@ -129,6 +144,9 @@ training:
   max_train_steps: null
   max_val_steps: null
   tqdm_interval_sec: 1.0
+  # DDP related settings
+  use_ddp: false
+  local_rank: 0
 
 logging:
   group: ${exp_name}

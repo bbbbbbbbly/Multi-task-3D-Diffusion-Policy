@@ -73,9 +73,10 @@ policy:
     pc_encoder_dim: 512
     use_pretrained_weights: true
     pretrained_weights_path: "Uni3D_tiny/model.pt"  # 预训练权重路径
+    normalization_type: "layer_norm"  # Options: "batch_norm", "layer_norm", "none"
 
 data_augmentation:
-  use_augmentation: true      # 控制是否启用数据增强
+  use_augmentation: false      # 控制是否启用数据增强
   pc_noise_std: 0.005         # 点云噪声的标准差
   agent_pos_noise_std: 0.001  # agent_pos 噪声的标准差
 
@@ -89,14 +90,14 @@ ema:
   max_value: 0.9999
 
 dataloader:
-  batch_size: 64 # originally 128, modified for not out of memory
+  batch_size: 1 # originally 128, modified for not out of memory
   num_workers: 8
   shuffle: True
   pin_memory: True
   persistent_workers: False
 
 val_dataloader:
-  batch_size: 64 # originally 128, modified for not out of memory
+  batch_size: 1 # originally 128, modified for not out of memory
   num_workers: 8
   shuffle: False
   pin_memory: True
@@ -117,7 +118,7 @@ training:
   lr_scheduler: cosine
   lr_warmup_steps: 500
   num_epochs: 3001
-  gradient_accumulate_every: 4
+  gradient_accumulate_every: 1
   use_ema: True
   rollout_every: 200
   checkpoint_every: 50

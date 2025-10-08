@@ -8,6 +8,9 @@ shape_meta: ${task.shape_meta}
 exp_name: "dp3"
 setting: none
 
+# 控制使用 joint space 还是 endpose 数据
+# use_endpose: false  # false: 使用 robotwin2 (joint space), true: 使用 robotwin2_endpose
+
 # horizon: 4
 horizon: 16
 n_obs_steps: 2
@@ -70,8 +73,8 @@ policy:
 
 data_augmentation:
   use_augmentation: false      # 控制是否启用数据增强
-  pc_noise_std: 0.005         # 点云噪声的标准差
-  agent_pos_noise_std: 0.001  # agent_pos 噪声的标准差
+  pc_noise_std: 0.002         # 点云噪声的标准差
+  agent_pos_noise_std: 0.0002  # agent_pos 噪声的标准差
 
 
 ema:
@@ -122,14 +125,15 @@ training:
   tqdm_interval_sec: 1.0
 
 logging:
-  group: ${exp_name}
+  group: ${task.name}
   id: null
   mode: online
-  name: ${task.name}
-  project: dp3
+  name: ${exp_name}
+  project: dp3_robotwin
   resume: true
   tags:
   - dp3
+  - robotwin
 
 checkpoint:
   save_ckpt: False # if True, save checkpoint every checkpoint_every

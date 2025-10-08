@@ -86,6 +86,7 @@ class AdroitDataset(BaseDataset):
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         sample = self.sampler.sample_sequence(idx)
         data = self._sample_to_data(sample)
+        
         torch_data = dict_apply(data, torch.from_numpy)
         return torch_data
 

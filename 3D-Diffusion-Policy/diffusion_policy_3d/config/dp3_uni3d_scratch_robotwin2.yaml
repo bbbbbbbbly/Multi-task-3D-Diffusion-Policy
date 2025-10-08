@@ -58,7 +58,7 @@ policy:
   shape_meta: ${shape_meta}
 
   use_pc_color: false
-  pointnet_type: "uni3d_pretrained"
+  pointnet_type: "uni3d"
 
 
   pointcloud_encoder_cfg:
@@ -73,9 +73,10 @@ policy:
     pc_encoder_dim: 512
     use_pretrained_weights: false
     pretrained_weights_path: null  # 预训练权重路径
+    normalization_type: "batch_norm"  # Options: "batch_norm", "layer_norm", "none"
 
 data_augmentation:
-  use_augmentation: true      # 控制是否启用数据增强
+  use_augmentation: false      # 控制是否启用数据增强
   pc_noise_std: 0.005         # 点云噪声的标准差
   agent_pos_noise_std: 0.001  # agent_pos 噪声的标准差
 

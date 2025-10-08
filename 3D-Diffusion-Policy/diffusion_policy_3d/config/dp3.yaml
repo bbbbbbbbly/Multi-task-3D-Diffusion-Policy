@@ -68,9 +68,9 @@ policy:
     normal_channel: false
 
 data_augmentation:
-  use_augmentation: false      # 控制是否启用数据增强
-  pc_noise_std: 0.005         # 点云噪声的标准差
-  agent_pos_noise_std: 0.001  # agent_pos 噪声的标准差
+  use_augmentation: true      # 控制是否启用数据增强
+  pc_noise_std: 0.002         # 点云噪声的标准差
+  agent_pos_noise_std: 0.0002  # agent_pos 噪声的标准差
 
 
 ema:

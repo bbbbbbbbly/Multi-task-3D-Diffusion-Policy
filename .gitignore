@@ -62,7 +62,7 @@ models/
 3D-Diffusion-Policy/Uni3D_tiny/model.pt
 aloha_urdf.zip
 main_models.zip
-RoboTwin1.0_3d_policy/eval_video/
+RoboTwin1.0_3d_policy/
 
 # 7.19 Update
 .cache/
@@ -72,9 +72,28 @@ RoboTwin1.0_3d_policy/eval_video/
 debug_actions/
 # RoboTwin2.0_3D_policy/assets/
 RoboTwin2.0_3D_policy/eval_video/
+RoboTwin2.0_3D_policy/done_eval_video/
+RoboTwin2.0_3D_policy/old_eval_video/
 
 # 8.1 Update
 Dockerfile
 dp3_training_environment.yml
 # !/RoboTwin2.0_3D_policy/assets/_download.py
 # !/RoboTwin2.0_3D_policy/assets/files/
+
+# 10.7 Update
+clip_model/open_clip_pytorch_model.bin
+3D-Diffusion-Policy/Uni3D_small/model.pt
+RoboTwin2.0_3D_policy/evaluation_results/
+RoboTwin2.0_3D_policy/old_seeds_list/
+RoboTwin2.0_3D_policy/old_seeds_list_left/
+RoboTwin2.0_3D_policy/seeds_list/
+RoboTwin2.0_3D_policy/wandb_logs/
+scripts/batch_robotwin2_eval.sh
+scripts/batch_robotwin2_eval_1.sh
+scripts/batch_robotwin2_eval_2.sh
+scripts/batch_robotwin2_eval_3.sh
+scripts/batch_robotwin2_eval_4.sh
+3D-Diffusion-Policy/diffusion_policy_3d/model/vision/pointnet_extractor_original.py
+RoboTwin_3dpolicy_new/
+.vscode/

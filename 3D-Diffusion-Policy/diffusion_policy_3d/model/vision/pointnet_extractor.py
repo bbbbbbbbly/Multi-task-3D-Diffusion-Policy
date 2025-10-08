@@ -324,24 +324,56 @@ class DP3Encoder(nn.Module):
 
         # Initialize language encoder for multi-task mode
         if self.multi_task_enabled:
-            try:
-                from sentence_transformers import SentenceTransformer
-                self.language_encoder = SentenceTransformer(
-                    multi_task_config.get('language_encoder', 'sentence-transformers/all-MiniLM-L6-v2')
-                )
-                # Freeze language encoder parameters
-                for param in self.language_encoder.parameters():
-                    param.requires_grad = False
+            self.language_encoder_type = multi_task_config.get('language_encoder_type', 'sentence_transformers')
+            language_mlp_dim = multi_task_config.get('language_mlp_dim', 64)
 
-                # Language feature MLP (384 -> 64 to match state features)
-                language_mlp_dim = multi_task_config.get('language_mlp_dim', 64)
-                self.language_mlp = nn.Sequential(*create_mlp(384, language_mlp_dim, [128], state_mlp_activation_fn))
-                self.n_output_channels += language_mlp_dim
+            if self.language_encoder_type == 'sentence_transformers':
+                try:
+                    from sentence_transformers import SentenceTransformer
+                    self.language_encoder = SentenceTransformer(
+                        multi_task_config.get('language_encoder', 'sentence-transformers/all-MiniLM-L6-v2')
+                    )
+                    # Freeze language encoder parameters
+                    for param in self.language_encoder.parameters():
+                        param.requires_grad = False
 
-                cprint(f"[DP3Encoder] Multi-task mode enabled with language encoder", "green")
-                cprint(f"[DP3Encoder] Language MLP output dim: {language_mlp_dim}", "green")
-            except ImportError:
-                raise ImportError("sentence-transformers is required for multi-task mode. Install with: pip install sentence-transformers")
+                    # Language feature MLP (384 -> language_mlp_dim)
+                    self.language_mlp = nn.Sequential(*create_mlp(384, language_mlp_dim, [128], state_mlp_activation_fn))
+                    cprint(f"[DP3Encoder] Using SentenceTransformers encoder: {multi_task_config.get('language_encoder')}", "green")
+
+                except ImportError:
+                    raise ImportError("sentence-transformers is required for sentence_transformers mode. Install with: pip install sentence-transformers")
+
+            elif self.language_encoder_type == 'clip':
+                try:
+                    import open_clip
+                    clip_model = multi_task_config.get('clip_model', 'EVA02-E-14-plus')
+                    clip_pretrained = multi_task_config.get('clip_pretrained', 'laion2b_s9b_b144k')
+
+                    # Initialize CLIP model and tokenizer
+                    self.clip_model, _, _ = open_clip.create_model_and_transforms(clip_model, pretrained=clip_pretrained)
+                    self.clip_model.eval()
+                    self.clip_tokenizer = open_clip.get_tokenizer(clip_model)
+
+                    # Freeze CLIP parameters
+                    for param in self.clip_model.parameters():
+                        param.requires_grad = False
+
+                    # # Get CLIP text encoder output dimension (typically 1024 for EVA02-E-14-plus)
+                    # clip_dim = self.clip_model.text.output_dim if hasattr(self.clip_model.text, 'output_dim') else 1024
+
+                    # Language feature MLP (clip_dim -> language_mlp_dim)
+                    self.language_mlp = nn.Linear(1024, language_mlp_dim)
+                    cprint(f"[DP3Encoder] Using CLIP encoder: {clip_model} with pretrained: {clip_pretrained}", "green")
+
+                except ImportError:
+                    raise ImportError("open_clip is required for CLIP mode. Install with: pip install open_clip_torch")
+            else:
+                raise ValueError(f"Unsupported language_encoder_type: {self.language_encoder_type}. Supported types: 'sentence_transformers', 'clip'")
+
+            self.n_output_channels += language_mlp_dim
+            cprint(f"[DP3Encoder] Multi-task mode enabled with {self.language_encoder_type} encoder", "green")
+            cprint(f"[DP3Encoder] Language MLP output dim: {language_mlp_dim}", "green")
 
         cprint(f"[DP3Encoder] Final output dim: {self.n_output_channels}", "red")
 
@@ -392,29 +424,47 @@ class DP3Encoder(nn.Module):
         if self.multi_task_enabled and self.language_key in observations:
             language_instructions = observations[self.language_key]
 
-            # Handle batch of instructions
-            if isinstance(language_instructions, (list, tuple)):
-                # Encode batch of instructions
+            if self.language_encoder_type == 'sentence_transformers':
+                # Handle batch of instructions for SentenceTransformers
+                if isinstance(language_instructions, (list, tuple)):
+                    # Encode batch of instructions
+                    with torch.no_grad():
+                        language_embeddings = self.language_encoder.encode(
+                            language_instructions,
+                            convert_to_tensor=True,
+                            device=pn_feat.device,
+                            show_progress_bar=False
+                        )
+                else:
+                    # Single instruction
+                    with torch.no_grad():
+                        language_embeddings = self.language_encoder.encode(
+                            [language_instructions],
+                            convert_to_tensor=True,
+                            device=pn_feat.device,
+                            show_progress_bar=False
+                        )
+                        language_embeddings = language_embeddings[0:1]  # Keep batch dimension
+
+            elif self.language_encoder_type == 'clip':
+                # Handle batch of instructions for CLIP
+                if isinstance(language_instructions, (list, tuple)):
+                    instruction_list = language_instructions
+                else:
+                    instruction_list = [language_instructions]
+
                 with torch.no_grad():
-                    language_embeddings = self.language_encoder.encode(
-                        language_instructions,
-                        convert_to_tensor=True,
-                        device=pn_feat.device,
-                        show_progress_bar=False
-                    )
-            else:
-                # Single instruction
-                with torch.no_grad():
-                    language_embeddings = self.language_encoder.encode(
-                        [language_instructions],
-                        convert_to_tensor=True,
-                        device=pn_feat.device,
-                        show_progress_bar=False
-                    )
-                    language_embeddings = language_embeddings[0:1]  # Keep batch dimension
+                    # Tokenize instructions
+                    tokenized = self.clip_tokenizer(instruction_list).to(pn_feat.device)
+                    # Encode with CLIP text encoder
+                    language_embeddings = self.clip_model.encode_text(tokenized)
+
+                    # If single instruction, ensure batch dimension
+                    if not isinstance(language_instructions, (list, tuple)):
+                        language_embeddings = language_embeddings[0:1]
 
             # Apply language MLP
-            language_feat = self.language_mlp(language_embeddings)  # B * 64
+            language_feat = self.language_mlp(language_embeddings)  # B * language_mlp_dim
             features.append(language_feat)
         
         # print('============= print Encoder -> features =============\n')
@@ -592,21 +642,69 @@ class Group(nn.Module):
 
 class Encoder(nn.Module):
     """Uni3D点云编码器"""
-    def __init__(self, encoder_channel):
+    def __init__(self, encoder_channel, normalization_type="batch_norm"):
         super().__init__()
         self.encoder_channel = encoder_channel
-        self.first_conv = nn.Sequential(
+        self.normalization_type = normalization_type
+
+        # Helper function to create normalization layer
+        def create_norm_layer(num_features):
+            """
+            Create normalization layer based on configuration
+            Args:
+                num_features: Number of features/channels
+            """
+
+            cprint(f"[Uni3DPointcloudEncoder] 使用{self.normalization_type}", "yellow")
+
+            if self.normalization_type == "batch_norm":
+                return nn.BatchNorm1d(num_features)
+            elif self.normalization_type == "layer_norm":
+                # For 1D convolutions with LayerNorm, we need a custom wrapper
+                # Input shape: (batch_size, channels, sequence_length)
+                # We want to normalize over the channel dimension
+                class LayerNorm1d(nn.Module):
+                    def __init__(self, num_features):
+                        super().__init__()
+                        self.layer_norm = nn.LayerNorm(num_features)
+
+                    def forward(self, x):
+                        # x shape: (batch_size, channels, sequence_length)
+                        # Transpose to (batch_size, sequence_length, channels)
+                        x = x.transpose(1, 2)
+                        # Apply LayerNorm
+                        x = self.layer_norm(x)
+                        # Transpose back to (batch_size, channels, sequence_length)
+                        x = x.transpose(1, 2)
+                        return x
+
+                return LayerNorm1d(num_features)
+            elif self.normalization_type == "none":
+                return nn.Identity()
+            else:
+                raise ValueError(f"Unsupported normalization type: {self.normalization_type}")
+
+        # First convolution block
+        first_conv_layers = [
             nn.Conv1d(6, 128, 1),
-            nn.BatchNorm1d(128),
+        ]
+        first_conv_layers.append(create_norm_layer(128))
+        first_conv_layers.extend([
             nn.ReLU(inplace=True),
             nn.Conv1d(128, 256, 1)
-        )
-        self.second_conv = nn.Sequential(
+        ])
+        self.first_conv = nn.Sequential(*first_conv_layers)
+
+        # Second convolution block
+        second_conv_layers = [
             nn.Conv1d(512, 512, 1),
-            nn.BatchNorm1d(512),
+        ]
+        second_conv_layers.append(create_norm_layer(512))
+        second_conv_layers.extend([
             nn.ReLU(inplace=True),
             nn.Conv1d(512, self.encoder_channel, 1)
-        )
+        ])
+        self.second_conv = nn.Sequential(*second_conv_layers)
     
     def forward(self, point_groups):
         '''
@@ -629,7 +727,7 @@ class Uni3DPointcloudEncoder(nn.Module):
     Uni3D点云编码器 - 从FP3项目迁移到DP3
     支持预训练权重加载和从头训练两种模式
     """
-    def __init__(self, 
+    def __init__(self,
                  pc_model='eva02_large_patch14_448',
                  pc_feat_dim=1024,
                  embed_dim=1024,
@@ -641,6 +739,7 @@ class Uni3DPointcloudEncoder(nn.Module):
                  pc_encoder_dim=512,
                  use_pretrained_weights=False,
                  pretrained_weights_path=None,
+                 normalization_type="batch_norm",
                  **kwargs):
         super().__init__()
         
@@ -658,7 +757,7 @@ class Uni3DPointcloudEncoder(nn.Module):
         
         # 定义编码器
         self.encoder_dim = pc_encoder_dim
-        self.encoder = Encoder(encoder_channel=self.encoder_dim)
+        self.encoder = Encoder(encoder_channel=self.encoder_dim, normalization_type=normalization_type)
     
         # 桥接层
         self.encoder2trans = nn.Linear(self.encoder_dim, self.trans_dim)
@@ -682,26 +781,122 @@ class Uni3DPointcloudEncoder(nn.Module):
         self.visual_blocks = point_transformer.blocks
         self.visual_norm = point_transformer.norm
         self.visual_fc_norm = point_transformer.fc_norm
+
+        # import pdb
+        # pdb.set_trace()
         
         # 加载预训练权重（如果指定）
         if use_pretrained_weights: # and pretrained_weights_path is not None:
+            self._load_pretrained_weights_selective(pretrained_weights_path, normalization_type)
+        else:
+            cprint(f"[Uni3DPointcloudEncoder] 使用随机初始化权重（从头训练模式）", "yellow")
+
+    def _load_pretrained_weights_selective(self, pretrained_weights_path, normalization_type):
+        """
+        选择性加载预训练权重，根据normalization_type决定加载策略
+
+        Args:
+            pretrained_weights_path: 预训练权重文件路径
+            normalization_type: 归一化类型 ("batch_norm", "layer_norm", "none")
+        """
+        try:
+            # 构建权重文件完整路径
             current_file_path_abs = os.path.abspath(__file__)
             current_directory_os = os.path.dirname(current_file_path_abs)
             cur_dir = os.path.join(current_directory_os, '../../..')
-            # cur_dir =os.getcwd()
             load_weight_path = os.path.join(cur_dir, pretrained_weights_path)
-            state_dict = torch.load(load_weight_path)['module']
-            
+
+            if not os.path.exists(load_weight_path):
+                cprint(f"[Uni3DPointcloudEncoder] 预训练权重文件不存在: {load_weight_path}", "red")
+                return
+
+            # 加载预训练权重
+            checkpoint = torch.load(load_weight_path)
+            if 'module' in checkpoint:
+                state_dict = checkpoint['module']
+            else:
+                state_dict = checkpoint
+
+            # 处理键名映射
+            processed_state_dict = {}
             for key in list(state_dict.keys()):
-                state_dict[key.replace('point_encoder.', '').replace('visual.', 'visual_')] = state_dict[key]
-            for key in list(state_dict.keys()):
-                if key not in self.state_dict():
-                    del state_dict[key]
-            self.load_state_dict(state_dict)
-            # self._load_pretrained_weights(pretrained_weights_path)
-            cprint(f"[Uni3DPointcloudEncoder] 已加载预训练权重从: {load_weight_path}", "green")
-        else:
-            cprint(f"[Uni3DPointcloudEncoder] 使用随机初始化权重（从头训练模式）", "yellow")
+                new_key = key.replace('point_encoder.', '').replace('visual.', 'visual_')
+                processed_state_dict[new_key] = state_dict[key]
+
+            # 获取当前模型的state_dict
+            current_state_dict = self.state_dict()
+
+            # 根据normalization_type选择性加载权重
+            if normalization_type == "batch_norm":
+                # batch_norm模式：完全兼容，加载所有匹配的权重
+                filtered_state_dict = {}
+                skipped_keys = []
+                # loaded_keys = []
+                for key, value in processed_state_dict.items():
+                    if key in current_state_dict and value.shape == current_state_dict[key].shape:
+                        filtered_state_dict[key] = value
+                        # loaded_keys.append(key)
+                    else:
+                        skipped_keys.append(key)
+
+
+                missing_keys, unexpected_keys = self.load_state_dict(filtered_state_dict, strict=False)
+                cprint(f"[Uni3DPointcloudEncoder] batch_norm模式：完全加载预训练权重", "green")
+                cprint(f"  加载的参数: {len(filtered_state_dict)}", "green")
+                cprint(f"  跳过的参数: {skipped_keys}, 共 {len(skipped_keys)} 个", "yellow")
+                if missing_keys:
+                    cprint(f"  缺失的参数: {len(missing_keys)}", "yellow")
+                if unexpected_keys:
+                    cprint(f"  意外的参数: {len(unexpected_keys)}", "yellow")
+
+            else:
+                # layer_norm或none模式：选择性加载，只加载卷积层权重
+                filtered_state_dict = {}
+                skipped_keys = []
+                loaded_keys = []
+
+                for key, value in processed_state_dict.items():
+                    if key in current_state_dict:
+                        # 检查是否是BatchNorm相关的参数
+                        if any(bn_key in key for bn_key in ['_conv.1.weight', '_conv.1.bias', '_conv.1.running_mean', '_conv.1.running_var', '_conv.1.num_batches_tracked']):
+                            # 跳过encoder中的BatchNorm参数（但保留visual transformer的norm参数）
+                            if 'encoder.' in key:
+                                skipped_keys.append(key)
+                                continue
+
+                        # 检查形状是否匹配
+                        if value.shape == current_state_dict[key].shape:
+                            filtered_state_dict[key] = value
+                            loaded_keys.append(key)
+                        else:
+                            skipped_keys.append(key)
+                    else:
+                        skipped_keys.append(key)
+
+                # 加载过滤后的权重
+                missing_keys, unexpected_keys = self.load_state_dict(filtered_state_dict, strict=False)
+
+                cprint(f"[Uni3DPointcloudEncoder] {normalization_type}模式：选择性加载预训练权重", "green")
+                cprint(f"  成功加载的参数: {len(loaded_keys)}", "green")
+                cprint(f"  跳过的参数: {skipped_keys}, 共 {len(skipped_keys)} 个", "yellow")
+
+
+                if missing_keys:
+                    cprint(f"  缺失的参数: {missing_keys}, 共 {len(missing_keys)} 个", "yellow")
+                if unexpected_keys:
+                    cprint(f"  意外的参数: {len(unexpected_keys)}", "yellow")
+
+                # 提醒用户新的归一化层将从头训练
+                if normalization_type == "layer_norm":
+                    cprint(f"  LayerNorm层将从随机初始化开始训练", "cyan")
+                elif normalization_type == "none":
+                    cprint(f"  无归一化层(identity)，卷积层权重已加载", "cyan")
+
+            cprint(f"[Uni3DPointcloudEncoder] 预训练权重加载完成: {load_weight_path}", "green")
+
+        except Exception as e:
+            cprint(f"[Uni3DPointcloudEncoder] 加载预训练权重时出错: {str(e)}", "red")
+            cprint(f"[Uni3DPointcloudEncoder] 将使用随机初始化权重", "yellow")
 
     # def _load_pretrained_weights(self, weights_path):
     #     """加载Uni3D预训练权重"""
@@ -746,6 +941,8 @@ class Uni3DPointcloudEncoder(nn.Module):
         if not eval:
             # cprint(f"[Uni3DPointcloudEncoder] 随机drop点云, for data augmentation", "yellow")
             pcd = random_point_dropout(pcd, max_dropout_ratio=0.8)
+        # else:
+            # cprint(f"[Uni3DPointcloudEncoder] 保持原点云输入, 不随机dop点云", "yellow")
         
         pts = pcd[..., :3].contiguous()
         colors = pcd[..., 3:].contiguous()

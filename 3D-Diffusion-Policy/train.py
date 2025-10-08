@@ -145,7 +145,7 @@ class TrainDP3Workspace:
         # if env_runner is not None:
         #     assert isinstance(env_runner, BaseRunner)
         
-        cfg.logging.name = str(cfg.task.name)
+        # cfg.logging.name = str(cfg.task.name)
         cprint("-----------------------------", "yellow")
         cprint(f"[WandB] group: {cfg.logging.group}", "yellow")
         cprint(f"[WandB] name: {cfg.logging.name}", "yellow")

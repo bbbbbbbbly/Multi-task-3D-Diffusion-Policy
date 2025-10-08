@@ -137,9 +137,9 @@ class MultiTaskEnvironmentManager:
         """Get observation from environment"""
         return self.env_manager.get_observation()
 
-    def take_action(self, action, obs_history):
+    def take_action(self, action, obs_history, n_obs_steps):
         """Execute action and return updated observation history"""
-        return self.env_manager.Take_action(action, obs_history)
+        return self.env_manager.Take_action(action, obs_history, n_obs_steps)
 
     def close_environment(self):
         """Close environment"""
@@ -345,7 +345,7 @@ def run_single_episode(multi_env: MultiTaskEnvironmentManager,
         )
 
         # Execute action and get updated observation history
-        status, obs_history = multi_env.take_action(action, obs_history)
+        status, obs_history = multi_env.take_action(action, obs_history, n_obs_steps)
         print(f"Step {step}: status = {status}")
 
         # Check episode termination conditions

@@ -331,6 +331,9 @@ class DP3(BasePolicy):
         # normalize input
         obs_dict = batch['obs']
 
+        # import pdb
+        # pdb.set_trace()
+
         # 1. (核心修改) 先把语言指令（非数值数据）从obs_dict中分离出来
         language_instructions = obs_dict.get('language', None)
         numerical_obs = {k: v for k, v in obs_dict.items() if k != 'language'}

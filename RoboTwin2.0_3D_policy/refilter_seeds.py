@@ -46,7 +46,7 @@ def main():
     # 只处理指定的两个文件
     seeds_dir = "/data/sea_disk0/wushr/3D-Policy/DP3Encoder-to-Uni3D/3D-Diffusion-Policy/RoboTwin2.0_3D_policy/seeds_list_left"
     
-    target_files = ["open_laptop.json", "adjust_bottle.json"]
+    target_files = ["stamp_seal.json", "place_fan.json"]
     
     print(f"重新过滤以下文件:")
     for file in target_files:
