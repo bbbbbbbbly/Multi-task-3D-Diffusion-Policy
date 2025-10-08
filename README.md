@@ -63,7 +63,7 @@ pip install open_clip_torch
 6. download Uni3D weight
     
 * Download [Uni3D Model](https://huggingface.co/BAAI/Uni3D/blob/main/modelzoo/uni3d-l/model.pt) into `3D-Diffusion-Policy/Uni3D_large/`.
-  * if you want to use "Uni3D Tiny" or other Uni3D models, follow the same way, but remember to modify configs.
+  * if you want to use "Uni3D Tiny" or other Uni3D models, follow the same way, but remember to modify configs (guidance is in the below).
 ---
 
 ### Installing robotwin2 conda environment
