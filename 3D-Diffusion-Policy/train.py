@@ -3,7 +3,7 @@ if __name__ == "__main__":
     import os
     import pathlib
 
-    ROOT_DIR = str(pathlib.Path(__file__).parent.parent.parent)
+    ROOT_DIR = str(pathlib.Path(__file__).parent.parent)
     sys.path.append(ROOT_DIR)
     os.chdir(ROOT_DIR)
 
@@ -88,7 +88,6 @@ class TrainDP3Workspace:
             RUN_CKPT = True
             verbose = False
         
-        RUN_ROLLOUT = False
         RUN_VALIDATION = True # reduce time cost
         
         # resume training
@@ -136,14 +135,14 @@ class TrainDP3Workspace:
             
         env_runner = None
         # 暂时不需要初始化环境，先注释掉
-        # # configure env
-        # env_runner: BaseRunner
-        # env_runner = hydra.utils.instantiate(
-        #     cfg.task.env_runner,
-        #     output_dir=self.output_dir)
+        # configure env
+        env_runner: BaseRunner
+        env_runner = hydra.utils.instantiate(
+            cfg.task.env_runner,
+            output_dir=self.output_dir)
 
-        # if env_runner is not None:
-        #     assert isinstance(env_runner, BaseRunner)
+        if env_runner is not None:
+            assert isinstance(env_runner, BaseRunner)
         
         # cfg.logging.name = str(cfg.task.name)
         cprint("-----------------------------", "yellow")
@@ -370,7 +369,7 @@ class TrainDP3Workspace:
         # pdb.set_trace()
 
         lastest_ckpt_path = self.get_checkpoint_path(tag="latest")
-        print(lastest_ckpt_path)
+        # print(lastest_ckpt_path)
         if lastest_ckpt_path.is_file():
             cprint(f"Resuming from checkpoint {lastest_ckpt_path}", 'magenta')
             self.load_checkpoint(path=lastest_ckpt_path)

@@ -6,7 +6,7 @@ name: train_dp3_uni3d
 task_name: null
 shape_meta: ${task.shape_meta}
 exp_name: "dp3"
-setting: none
+setting: null
 
 # horizon: 4
 horizon: 16
@@ -73,7 +73,7 @@ policy:
     pc_encoder_dim: 512
     use_pretrained_weights: false
     pretrained_weights_path: null  # 预训练权重路径
-    normalization_type: "batch_norm"  # Options: "batch_norm", "layer_norm", "none"
+    normalization_type: "layer_norm"  # Options: "batch_norm", "layer_norm", "none"
 
 data_augmentation:
   use_augmentation: false      # 控制是否启用数据增强
@@ -90,14 +90,14 @@ ema:
   max_value: 0.9999
 
 dataloader:
-  batch_size: 64 # originally 128, modified for not out of memory
+  batch_size: 32 # originally 128, modified for not out of memory
   num_workers: 8
   shuffle: True
   pin_memory: True
   persistent_workers: False
 
 val_dataloader:
-  batch_size: 64 # originally 128, modified for not out of memory
+  batch_size: 32 # originally 128, modified for not out of memory
   num_workers: 8
   shuffle: False
   pin_memory: True
@@ -118,11 +118,11 @@ training:
   lr_scheduler: cosine
   lr_warmup_steps: 500
   num_epochs: 3001
-  gradient_accumulate_every: 4
+  gradient_accumulate_every: 8
   use_ema: True
-  rollout_every: 200
+  rollout_every: 50
   checkpoint_every: 50
-  val_every: 50
+  val_every: 1
   sample_every: 5
   max_train_steps: null
   max_val_steps: null

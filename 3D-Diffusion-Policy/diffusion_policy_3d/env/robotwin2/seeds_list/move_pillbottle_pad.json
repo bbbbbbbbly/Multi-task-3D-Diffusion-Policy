@@ -1,0 +1,148 @@
+{
+  "20000": {
+    "seeds": [
+      20000,
+      20001,
+      20002,
+      20005,
+      20008,
+      20009,
+      20011,
+      20012,
+      20013,
+      20015,
+      20016,
+      20017,
+      20018,
+      20020,
+      20021,
+      20022,
+      20023,
+      20024,
+      20026,
+      20028
+    ],
+    "episode_info": {
+      "20000": [
+        {
+          "{A}": "080_pillbottle/base1",
+          "{a}": "right"
+        }
+      ],
+      "20001": [
+        {
+          "{A}": "080_pillbottle/base4",
+          "{a}": "right"
+        }
+      ],
+      "20002": [
+        {
+          "{A}": "080_pillbottle/base1",
+          "{a}": "right"
+        }
+      ],
+      "20005": [
+        {
+          "{A}": "080_pillbottle/base5",
+          "{a}": "right"
+        }
+      ],
+      "20008": [
+        {
+          "{A}": "080_pillbottle/base3",
+          "{a}": "right"
+        }
+      ],
+      "20009": [
+        {
+          "{A}": "080_pillbottle/base3",
+          "{a}": "right"
+        }
+      ],
+      "20011": [
+        {
+          "{A}": "080_pillbottle/base3",
+          "{a}": "right"
+        }
+      ],
+      "20012": [
+        {
+          "{A}": "080_pillbottle/base1",
+          "{a}": "left"
+        }
+      ],
+      "20013": [
+        {
+          "{A}": "080_pillbottle/base1",
+          "{a}": "left"
+        }
+      ],
+      "20015": [
+        {
+          "{A}": "080_pillbottle/base4",
+          "{a}": "left"
+        }
+      ],
+      "20016": [
+        {
+          "{A}": "080_pillbottle/base2",
+          "{a}": "left"
+        }
+      ],
+      "20017": [
+        {
+          "{A}": "080_pillbottle/base1",
+          "{a}": "right"
+        }
+      ],
+      "20018": [
+        {
+          "{A}": "080_pillbottle/base4",
+          "{a}": "right"
+        }
+      ],
+      "20020": [
+        {
+          "{A}": "080_pillbottle/base3",
+          "{a}": "right"
+        }
+      ],
+      "20021": [
+        {
+          "{A}": "080_pillbottle/base3",
+          "{a}": "right"
+        }
+      ],
+      "20022": [
+        {
+          "{A}": "080_pillbottle/base1",
+          "{a}": "left"
+        }
+      ],
+      "20023": [
+        {
+          "{A}": "080_pillbottle/base2",
+          "{a}": "left"
+        }
+      ],
+      "20024": [
+        {
+          "{A}": "080_pillbottle/base5",
+          "{a}": "right"
+        }
+      ],
+      "20026": [
+        {
+          "{A}": "080_pillbottle/base5",
+          "{a}": "left"
+        }
+      ],
+      "20028": [
+        {
+          "{A}": "080_pillbottle/base3",
+          "{a}": "left"
+        }
+      ]
+    }
+  }
+}

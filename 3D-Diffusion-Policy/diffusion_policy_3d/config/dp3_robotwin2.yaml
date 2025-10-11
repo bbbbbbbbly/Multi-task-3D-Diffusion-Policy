@@ -6,7 +6,7 @@ name: train_dp3
 task_name: null
 shape_meta: ${task.shape_meta}
 exp_name: "dp3"
-setting: none
+setting: null
 
 # 控制使用 joint space 还是 endpose 数据
 # use_endpose: false  # false: 使用 robotwin2 (joint space), true: 使用 robotwin2_endpose
@@ -116,7 +116,7 @@ training:
   num_epochs: 3001
   gradient_accumulate_every: 1
   use_ema: True
-  rollout_every: 200
+  rollout_every: 50
   checkpoint_every: 50
   val_every: 50
   sample_every: 5

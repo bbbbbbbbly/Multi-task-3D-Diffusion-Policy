@@ -58,9 +58,9 @@ class RobotwinDataset(BaseDataset):
         
         # 根据 use_endpose 修改 zarr_path
         if use_endpose:
-            # 将 data/robotwin2/{task}-demo_clean.zarr 
-            # 转换为 data/robotwin2_endpose/{task}-demo_clean-100_endpose.zarr
-            zarr_path = zarr_path.replace('data/robotwin2/', 'data/robotwin2_endpose/')
+            # 将 3D-Diffusion-Policy/3D-Diffusion-Policy/data/robotwin2/{task}-demo_clean.zarr 
+            # 转换为 3D-Diffusion-Policy/3D-Diffusion-Policy/data/robotwin2_endpose/{task}-demo_clean-100_endpose.zarr
+            zarr_path = zarr_path.replace('/robotwin2/', '/robotwin2_endpose/')
             zarr_path = zarr_path.replace('.zarr', '_endpose.zarr')
             cprint("--------------------------", "cyan")
             cprint(f"使用 Endpose 数据: {zarr_path}", "cyan")

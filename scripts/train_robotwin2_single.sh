@@ -33,6 +33,7 @@ else
 fi
 
 cd 3D-Diffusion-Policy
+run_dir="$(pwd)/data/outputs/robotwin2_${exp_name}_seed${seed}"
 
 export HYDRA_FULL_ERROR=1
 export TOKENIZERS_PARALLELISM=false

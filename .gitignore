@@ -98,3 +98,10 @@ scripts/batch_robotwin2_eval_4.sh
 RoboTwin_3dpolicy_new/
 .vscode/
 RoboTwin1.0_3d_policy/
+
+# 10.11 update
+evaluation_benchmark_env.yml
+policy_training_env.yml
+3D-Diffusion-Policy/diffusion_policy_3d/env/robotwin2/assets/
+3D-Diffusion-Policy/diffusion_policy_3d/env/robotwin2/eval_video/
+3D-Diffusion-Policy/diffusion_policy_3d/env/robotwin2/envs/curobo/
