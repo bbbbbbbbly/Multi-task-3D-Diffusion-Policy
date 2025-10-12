@@ -266,7 +266,7 @@ class TrainDP3Workspace:
             if (self.epoch % cfg.training.rollout_every) == 0 and RUN_ROLLOUT and env_runner is not None:
                 t3 = time.time()
                 # runner_log = env_runner.run(policy, dataset=dataset)
-                runner_log = env_runner.run(policy)
+                runner_log = env_runner.run(policy, self.epoch)
                 t4 = time.time()
                 # print(f"rollout time: {t4-t3:.3f}")
                 # log all

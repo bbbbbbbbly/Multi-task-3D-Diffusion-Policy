@@ -92,7 +92,7 @@ class RoboTwin2Runner(BaseRunner):
         cprint(f"[RoboTwin2Runner] Eval episodes: {eval_episodes}", "cyan")
         cprint(f"[RoboTwin2Runner] n_obs_steps: {n_obs_steps}, n_action_steps: {n_action_steps}", "cyan")
     
-    def run(self, policy: BasePolicy):
+    def run(self, policy: BasePolicy, epoch=0):
         """
         Run evaluation on RoboTwin 2.0 environment
         
@@ -129,7 +129,7 @@ class RoboTwin2Runner(BaseRunner):
         # Get run_dir identifier from output_dir
         run_dir = os.path.basename(self.output_dir)
         # Determine which checkpoint epoch we're evaluating (default to 0 if not specified)
-        epoch = 0  # This could be passed as a parameter if needed
+        # epoch = 0  # This could be passed as a parameter if needed
         
         # Main evaluation loop
         for i, (episode_seed, task_id, episode_info_list) in enumerate(
