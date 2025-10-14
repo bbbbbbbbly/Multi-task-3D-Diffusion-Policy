@@ -142,11 +142,17 @@ bash scripts/train_robotwin2_single.sh dp3_uni3d_scratch_robotwin2 beat_block_ha
   fi
   ```
 
- 3. Multi-task DP3 (with Uni3D)
+3. Multi-GPU training examples
+```bash
+bash scripts/train_robotwin2_single.sh dp3_uni3d_scratch_robotwin2 beat_block_hammer 9999 0 0,1
+```
+* You only need to change GPUID from the single one like "0" to the multi one like "0,1" or "0,1,2"
+
+ <!-- 3. Multi-task DP3 (with Uni3D)
  ```bash
  bash scripts/train_policy.sh dp3_multi_task multi_task_robotwin2 9999 0 2
  bash scripts/train_policy.sh dp3_uni3d_pretrained_multi_task multi_task_robotwin2 9999 0 2
- ```
+ ``` -->
 
 ---
 

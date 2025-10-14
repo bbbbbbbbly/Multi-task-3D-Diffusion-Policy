@@ -127,12 +127,15 @@ training:
   max_train_steps: null
   max_val_steps: null
   tqdm_interval_sec: 1.0
+  # DDP related settings
+  use_ddp: false
+  local_rank: 0
 
 logging:
-  group: ${exp_name}
+  group: ${task_name}
   id: null
   mode: online
-  name: ${task.name}
+  name: ${exp.name}
   project: dp3_uni3d_scratch
   resume: true
   tags:

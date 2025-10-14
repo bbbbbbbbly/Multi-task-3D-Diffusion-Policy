@@ -118,18 +118,21 @@ training:
   use_ema: True
   rollout_every: 50
   checkpoint_every: 50
-  val_every: 50
+  val_every: 1
   sample_every: 5
   max_train_steps: null
   max_val_steps: null
   tqdm_interval_sec: 1.0
+  # DDP related settings
+  use_ddp: false
+  local_rank: 0
 
 logging:
   group: ${task.name}
   id: null
   mode: online
   name: ${exp_name}
-  project: dp3_robotwin
+  project: RoboTwin2.0-Evaluation
   resume: true
   tags:
   - dp3
